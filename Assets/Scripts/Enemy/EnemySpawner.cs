@@ -92,6 +92,8 @@ namespace DungeonGame.Enemy
 
         private void Update()
         {
+            if (isSpawningPaused) return;
+
             if (GameManager.Instance != null && GameManager.Instance.CurrentState != GameState.Playing)
                 return;
 
@@ -201,6 +203,31 @@ namespace DungeonGame.Enemy
         public void ClearConfigs()
         {
             enemyConfigs.Clear();
+        }
+
+        private bool isSpawningPaused = false;
+        public bool IsSpawningPaused => isSpawningPaused;
+
+        public void StopSpawning()
+        {
+            isSpawningPaused = true;
+        }
+
+        public void ResumeSpawning()
+        {
+            isSpawningPaused = false;
+        }
+
+        public void ClearAllEnemies()
+        {
+            var enemies = UnityEngine.Object.FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
+            foreach (var e in enemies)
+            {
+                if (e != null && !e.CompareTag("Boss") && !e.name.Contains("Boss") && !e.name.Contains("Goliath"))
+                {
+                    Destroy(e.gameObject);
+                }
+            }
         }
     }
 }
