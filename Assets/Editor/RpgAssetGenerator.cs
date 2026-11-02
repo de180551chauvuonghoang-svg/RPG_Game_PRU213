@@ -136,13 +136,19 @@ namespace DungeonGame.EditorScripts
             weaponData.projectilePoolTag = "PlayerBullet";
             EditorUtility.SetDirty(weaponData);
 
-            // 3. TẠO 3 PREFAB QUÁI VẬT RPG (SLIME, SKELETON, DEMON)
-            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 70f, 3.6f, 100, 10f, 1.3f);
-            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 120f, 2.7f, 250, 15f, 1.4f);
-            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 220f, 2.1f, 500, 25f, 1.6f);
+            // 2.5. XÓA PREFAB QUÁI CŨ ĐỂ TẠO LẠI VỚI SÁT THƯƠNG 5 MÁU
+            AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Slime.prefab");
+            AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Skeleton.prefab");
+            AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Demon.prefab");
+            AssetDatabase.Refresh();
 
-            // 4. CẬP NHẬT PLAYER
-            PlayerController player = Object.FindAnyObjectByType<PlayerController>();
+            // 3. TẠO 3 PREFAB QUÁI VẬT RPG (MỖI LẦN CHẠM VÀO TRỪ ĐÚNG 5 MÁU)
+            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 50f, 3.4f, 100, 5f, 1.3f);
+            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 100f, 2.6f, 250, 5f, 1.4f);
+            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 180f, 2.0f, 500, 5f, 1.6f);
+
+            // 4. CẬP NHẬT PLAYER (MÁU 100% VÀ BẢO VỆ I-FRAMES 0.5s)
+            PlayerController player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
             if (player == null)
             {
                 GameObject pObj = new GameObject("Player");
@@ -164,6 +170,16 @@ namespace DungeonGame.EditorScripts
             player.transform.localScale = new Vector3(1.4f, 1.4f, 1f);
             SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
             if (playerSr != null) playerSr.sprite = heroSprite;
+
+            HealthComponent pHealth = player.GetComponent<HealthComponent>();
+            if (pHealth != null)
+            {
+                SerializedObject pHealthSo = new SerializedObject(pHealth);
+                pHealthSo.FindProperty("maxHealth").floatValue = 100f;
+                pHealthSo.FindProperty("currentHealth").floatValue = 100f;
+                pHealthSo.FindProperty("invulnerabilityDuration").floatValue = 0.5f;
+                pHealthSo.ApplyModifiedProperties();
+            }
 
             // Weapon Pivot & FirePoint cho Player
             Transform pivot = player.transform.Find("WeaponPivot");
@@ -209,12 +225,15 @@ namespace DungeonGame.EditorScripts
                 combatSo.ApplyModifiedProperties();
             }
 
-            // 5. CẬP NHẬT OBJECT POOLER & GAME MANAGER
+            // 5. CẬP NHẬT OBJECT POOLER & GAME MANAGER & IN-GAME HUD
             GameObject managersObj = GameObject.Find("[Managers]");
             if (managersObj == null) managersObj = new GameObject("[Managers]");
 
             GameManager gm = managersObj.GetComponent<GameManager>();
             if (gm == null) gm = managersObj.AddComponent<GameManager>();
+
+            InGameHUD hud = managersObj.GetComponent<InGameHUD>();
+            if (hud == null) hud = managersObj.AddComponent<InGameHUD>();
 
             ObjectPooler pooler = managersObj.GetComponent<ObjectPooler>();
             if (pooler == null) pooler = managersObj.AddComponent<ObjectPooler>();
@@ -233,7 +252,7 @@ namespace DungeonGame.EditorScripts
             GameObject oldStaticFloor = GameObject.Find("[DungeonFloor]");
             if (oldStaticFloor != null) Object.DestroyImmediate(oldStaticFloor);
 
-            InfiniteWorldManager worldMgr = Object.FindAnyObjectByType<InfiniteWorldManager>();
+            InfiniteWorldManager worldMgr = UnityEngine.Object.FindAnyObjectByType<InfiniteWorldManager>();
             if (worldMgr == null)
             {
                 GameObject wObj = new GameObject("[InfiniteWorldManager]");
@@ -242,7 +261,7 @@ namespace DungeonGame.EditorScripts
             worldMgr.SetFloorSprite(floorSprite);
 
             // 7. TẠO BỘ SINH QUÁI VẬT TỰ ĐỘNG (ENEMY SPAWNER)
-            EnemySpawner spawner = Object.FindAnyObjectByType<EnemySpawner>();
+            EnemySpawner spawner = UnityEngine.Object.FindAnyObjectByType<EnemySpawner>();
             if (spawner == null)
             {
                 GameObject sObj = new GameObject("[EnemySpawner]");
@@ -253,7 +272,7 @@ namespace DungeonGame.EditorScripts
             spawner.AddEnemyConfig("Xương Ma Ám", skeletonPrefab, 30, 15f);
             spawner.AddEnemyConfig("Quỷ Dung Nham", demonPrefab, 10, 30f);
 
-            // 8. TẠO CANVAS GIAO DIỆN HUD (ĐIỂM SỐ, KILLS, THỜI GIAN, MÁU)
+            // 8. TẠO CANVAS GIAO DIỆN HUD
             CreateOrUpdateHudCanvas();
 
             // 9. GẮN CAMERA THEO DÕI
@@ -269,10 +288,19 @@ namespace DungeonGame.EditorScripts
                 mainCam.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 1f);
             }
 
-            // Xóa các quái dummy cũ để nhường chỗ cho quái spawn tự động
+            // 10. XÓA HOÀN TOÀN TẤT CẢ QUÁI VẬT CŨ ĐỨNG YÊN TRONG SCENE
             DeleteOldDummy("Dummy_Enemy_1");
             DeleteOldDummy("Dummy_Enemy_2");
             DeleteOldDummy("Dummy_Enemy_3");
+            DeleteOldDummy("Enemy_Dummy");
+
+            foreach (var oldEnemy in UnityEngine.Object.FindObjectsByType<EnemyController>(FindObjectsSortMode.None))
+            {
+                if (oldEnemy != null && !EditorUtility.IsPersistent(oldEnemy.gameObject))
+                {
+                    Object.DestroyImmediate(oldEnemy.gameObject);
+                }
+            }
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
