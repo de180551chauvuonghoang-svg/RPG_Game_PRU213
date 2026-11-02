@@ -119,7 +119,9 @@ namespace DungeonGame.World
                     GameObject tile = new GameObject($"Tile_{x}_{y}");
                     tile.transform.SetParent(chunkObj.transform, false);
                     tile.transform.localPosition = new Vector3(x * tileSize, y * tileSize, 0f);
-                    tile.transform.localScale = new Vector3(tileSize, tileSize, 1f);
+                    float spriteWidth = (floorSprite != null && floorSprite.rect.width > 0) ? (floorSprite.rect.width / floorSprite.pixelsPerUnit) : 2f;
+                    float scaleFactor = tileSize / spriteWidth;
+                    tile.transform.localScale = new Vector3(scaleFactor, scaleFactor, 1f);
 
                     SpriteRenderer sr = tile.AddComponent<SpriteRenderer>();
                     sr.sprite = floorSprite;

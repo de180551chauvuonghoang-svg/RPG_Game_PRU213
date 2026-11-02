@@ -11,7 +11,6 @@ using DungeonGame.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace DungeonGame.EditorScripts
 {
@@ -32,10 +31,11 @@ namespace DungeonGame.EditorScripts
 
         private static void CheckAndGenerateRpgAssets()
         {
-            if (!File.Exists("Assets/Sprites/Hero_Knight.png") || 
+            if (!File.Exists("Assets/Sprites/Shop_Stall.png") || 
+                !File.Exists("Assets/Prefabs/Shop_Stall.prefab") ||
                 GameObject.Find("Dummy_Enemy_1") != null || 
                 GameObject.Find("Dummy_Enemy_2") != null ||
-                UnityEngine.Object.FindAnyObjectByType<InGameHUD>() == null)
+                UnityEngine.Object.FindAnyObjectByType<UpgradeShopSpawner>() == null)
             {
                 GenerateAllRpgAssets();
                 ApplyStage2ToCurrentScene();
@@ -51,20 +51,24 @@ namespace DungeonGame.EditorScripts
             if (!AssetDatabase.IsValidFolder("Assets/Data"))
                 AssetDatabase.CreateFolder("Assets", "Data");
 
-            SaveTextureAsPng(GenerateKnightHero(), "Assets/Sprites/Hero_Knight.png");
-            SaveTextureAsPng(GenerateDemonSlime(), "Assets/Sprites/Enemy_Slime.png");
-            SaveTextureAsPng(GenerateSkeleton(), "Assets/Sprites/Enemy_Skeleton.png");
-            SaveTextureAsPng(GenerateFireDemon(), "Assets/Sprites/Enemy_Demon.png");
-            SaveTextureAsPng(GenerateMagicStaff(), "Assets/Sprites/Weapon_Staff.png");
-            SaveTextureAsPng(GenerateFireballBullet(), "Assets/Sprites/Magic_Bullet.png");
-            SaveTextureAsPng(GenerateDungeonFloor(), "Assets/Sprites/Dungeon_Floor.png");
+            // Tạo các Sprite RPG cao cấp chuẩn 64x64 Pixel Art
+            SaveTextureAsPng(GenerateKnightHero64(), "Assets/Sprites/Hero_Knight.png");
+            SaveTextureAsPng(GenerateDemonSlime64(), "Assets/Sprites/Enemy_Slime.png");
+            SaveTextureAsPng(GenerateSkeleton64(), "Assets/Sprites/Enemy_Skeleton.png");
+            SaveTextureAsPng(GenerateFireDemon64(), "Assets/Sprites/Enemy_Demon.png");
+            SaveTextureAsPng(GenerateShopStall64(), "Assets/Sprites/Shop_Stall.png");
+            SaveTextureAsPng(GenerateMagicStaff48(), "Assets/Sprites/Weapon_Staff.png");
+            SaveTextureAsPng(GenerateFireballBullet32(), "Assets/Sprites/Magic_Bullet.png");
+            SaveTextureAsPng(GenerateDungeonFloor64(), "Assets/Sprites/Dungeon_Floor.png");
 
             AssetDatabase.Refresh();
 
+            // Cấu hình import sprite chuẩn Pixel Art không mờ
             ConfigureSpriteImport("Assets/Sprites/Hero_Knight.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Slime.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Skeleton.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Demon.png", 32);
+            ConfigureSpriteImport("Assets/Sprites/Shop_Stall.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Weapon_Staff.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Magic_Bullet.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Dungeon_Floor.png", 32);
@@ -92,6 +96,7 @@ namespace DungeonGame.EditorScripts
             Sprite slimeSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Slime.png");
             Sprite skeletonSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Skeleton.png");
             Sprite demonSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Demon.png");
+            Sprite shopSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Shop_Stall.png");
             Sprite staffSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Weapon_Staff.png");
             Sprite bulletSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Magic_Bullet.png");
             Sprite floorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor.png");
@@ -108,7 +113,7 @@ namespace DungeonGame.EditorScripts
                 bRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
                 var bCol = bObj.AddComponent<CircleCollider2D>();
                 bCol.isTrigger = true;
-                bCol.radius = 0.25f;
+                bCol.radius = 0.28f;
                 bObj.AddComponent<Projectile>();
                 bulletPrefab = PrefabUtility.SaveAsPrefabAsset(bObj, bulletPath);
                 Object.DestroyImmediate(bObj);
@@ -120,7 +125,30 @@ namespace DungeonGame.EditorScripts
                 EditorUtility.SetDirty(bulletPrefab);
             }
 
-            // 2. TẠO WEAPON DATA
+            // 2. TẠO HOẶC CẬP NHẬT PREFAB GIAN HÀNG MA THUẬT (SHOP STALL)
+            string shopPath = "Assets/Prefabs/Shop_Stall.prefab";
+            GameObject shopPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(shopPath);
+            if (shopPrefab == null)
+            {
+                GameObject sObj = new GameObject("Shop_Stall");
+                SpriteRenderer sSr = sObj.AddComponent<SpriteRenderer>();
+                sSr.sprite = shopSprite;
+                sSr.sortingOrder = 8;
+                var sCol = sObj.AddComponent<CircleCollider2D>();
+                sCol.isTrigger = true;
+                sCol.radius = 1.4f;
+                sObj.AddComponent<ShopStall>();
+                shopPrefab = PrefabUtility.SaveAsPrefabAsset(sObj, shopPath);
+                Object.DestroyImmediate(sObj);
+            }
+            else
+            {
+                SpriteRenderer sSr = shopPrefab.GetComponent<SpriteRenderer>();
+                if (sSr != null && shopSprite != null) sSr.sprite = shopSprite;
+                EditorUtility.SetDirty(shopPrefab);
+            }
+
+            // 3. TẠO WEAPON DATA
             string weaponPath = "Assets/Data/PistolData.asset";
             WeaponData weaponData = AssetDatabase.LoadAssetAtPath<WeaponData>(weaponPath);
             if (weaponData == null)
@@ -139,18 +167,18 @@ namespace DungeonGame.EditorScripts
             weaponData.projectilePoolTag = "PlayerBullet";
             EditorUtility.SetDirty(weaponData);
 
-            // 2.5. XÓA PREFAB QUÁI CŨ ĐỂ TẠO LẠI VỚI SÁT THƯƠNG 5 MÁU
+            // 4. XÓA PREFAB QUÁI CŨ ĐỂ TẠO LẠI VỚI SPRITE MỚI VÀ SÁT THƯƠNG 5 MÁU
             AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Slime.prefab");
             AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Skeleton.prefab");
             AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Demon.prefab");
             AssetDatabase.Refresh();
 
-            // 3. TẠO 3 PREFAB QUÁI VẬT RPG (TỐC ĐỘ VỪA PHẢI, MỖI LẦN CHẠM VÀO TRỪ ĐÚNG 5 MÁU)
-            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 40f, 2.4f, 100, 5f, 1.3f);
-            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 80f, 1.8f, 250, 5f, 1.4f);
-            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 150f, 1.3f, 500, 5f, 1.6f);
+            // 5. TẠO 3 PREFAB QUÁI VẬT RPG 64x64
+            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 40f, 2.4f, 100, 5f, 1.0f);
+            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 80f, 1.8f, 250, 5f, 1.1f);
+            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 150f, 1.3f, 500, 5f, 1.35f);
 
-            // 4. CẬP NHẬT PLAYER (MÁU 100% VÀ BẢO VỆ I-FRAMES 0.5s)
+            // 6. CẬP NHẬT PLAYER
             PlayerController player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
             if (player == null)
             {
@@ -170,7 +198,7 @@ namespace DungeonGame.EditorScripts
                 pObj.AddComponent<PlayerCombat>();
             }
 
-            player.transform.localScale = new Vector3(1.4f, 1.4f, 1f);
+            player.transform.localScale = Vector3.one;
             SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
             if (playerSr != null) playerSr.sprite = heroSprite;
 
@@ -201,7 +229,7 @@ namespace DungeonGame.EditorScripts
                 gunVisual = gObj.transform;
             }
             gunVisual.localPosition = new Vector3(0.6f, 0f, 0f);
-            gunVisual.localScale = new Vector3(1.2f, 1.2f, 1f);
+            gunVisual.localScale = Vector3.one;
             SpriteRenderer gSr = gunVisual.GetComponent<SpriteRenderer>();
             if (gSr == null) gSr = gunVisual.gameObject.AddComponent<SpriteRenderer>();
             gSr.sprite = staffSprite;
@@ -212,7 +240,7 @@ namespace DungeonGame.EditorScripts
             {
                 GameObject fObj = new GameObject("FirePoint");
                 fObj.transform.SetParent(gunVisual, false);
-                fObj.transform.localPosition = new Vector3(0.5f, 0f, 0f);
+                fObj.transform.localPosition = new Vector3(0.6f, 0f, 0f);
                 firePoint = fObj.transform;
             }
 
@@ -228,7 +256,7 @@ namespace DungeonGame.EditorScripts
                 combatSo.ApplyModifiedProperties();
             }
 
-            // 5. CẬP NHẬT OBJECT POOLER & GAME MANAGER & IN-GAME HUD
+            // 7. CẬP NHẬT OBJECT POOLER & GAME MANAGER & GIAN HÀNG SPAWNER
             GameObject managersObj = GameObject.Find("[Managers]");
             if (managersObj == null) managersObj = new GameObject("[Managers]");
 
@@ -241,6 +269,14 @@ namespace DungeonGame.EditorScripts
             InGameHUD hud = managersObj.GetComponent<InGameHUD>();
             if (hud != null) Object.DestroyImmediate(hud);
 
+            // Spawner Gian Hàng nâng cấp theo mốc điểm
+            UpgradeShopSpawner shopSpawner = managersObj.GetComponent<UpgradeShopSpawner>();
+            if (shopSpawner == null) shopSpawner = managersObj.AddComponent<UpgradeShopSpawner>();
+            SerializedObject shopSo = new SerializedObject(shopSpawner);
+            shopSo.FindProperty("shopPrefab").objectReferenceValue = shopPrefab;
+            shopSo.ApplyModifiedProperties();
+
+            // Pool Đạn
             ObjectPooler pooler = managersObj.GetComponent<ObjectPooler>();
             if (pooler == null) pooler = managersObj.AddComponent<ObjectPooler>();
 
@@ -251,10 +287,10 @@ namespace DungeonGame.EditorScripts
             SerializedProperty pool0 = poolsProp.GetArrayElementAtIndex(0);
             pool0.FindPropertyRelative("tag").stringValue = "PlayerBullet";
             pool0.FindPropertyRelative("prefab").objectReferenceValue = bulletPrefab;
-            pool0.FindPropertyRelative("size").intValue = 50;
+            pool0.FindPropertyRelative("size").intValue = 60;
             poolSo.ApplyModifiedProperties();
 
-            // 6. TẠO HỆ THỐNG THẾ GIỚI MỞ VÔ TẬN (INFINITE WORLD MANAGER)
+            // 8. CẬP NHẬT THẾ GIỚI MỞ VÔ TẬN (INFINITE WORLD)
             GameObject oldStaticFloor = GameObject.Find("[DungeonFloor]");
             if (oldStaticFloor != null) Object.DestroyImmediate(oldStaticFloor);
 
@@ -266,7 +302,7 @@ namespace DungeonGame.EditorScripts
             }
             worldMgr.SetFloorSprite(floorSprite);
 
-            // 7. TẠO BỘ SINH QUÁI VẬT TỰ ĐỘNG (ENEMY SPAWNER)
+            // 9. CẬP NHẬT BỘ SINH QUÁI VẬT TỰ ĐỘNG (ENEMY SPAWNER)
             EnemySpawner spawner = UnityEngine.Object.FindAnyObjectByType<EnemySpawner>();
             if (spawner == null)
             {
@@ -278,10 +314,10 @@ namespace DungeonGame.EditorScripts
             spawner.AddEnemyConfig("Xương Ma Ám", skeletonPrefab, 30, 15f);
             spawner.AddEnemyConfig("Quỷ Dung Nham", demonPrefab, 10, 30f);
 
-            // 8. TẠO CANVAS GIAO DIỆN HUD
+            // 10. XÓA CANVAS CŨ ĐỂ DUY TRÌ 1 GIAO DIỆN DUY NHẤT
             CreateOrUpdateHudCanvas();
 
-            // 9. GẮN CAMERA THEO DÕI
+            // 11. GẮN CAMERA THEO DÕI
             Camera mainCam = Camera.main;
             if (mainCam != null)
             {
@@ -291,10 +327,10 @@ namespace DungeonGame.EditorScripts
                 SerializedObject camSo = new SerializedObject(camFollow);
                 camSo.FindProperty("target").objectReferenceValue = player.transform;
                 camSo.ApplyModifiedProperties();
-                mainCam.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 1f);
+                mainCam.backgroundColor = new Color(0.06f, 0.06f, 0.1f, 1f);
             }
 
-            // 10. XÓA HOÀN TOÀN TẤT CẢ QUÁI VẬT CŨ ĐỨNG YÊN TRONG SCENE
+            // 12. XÓA DUMMY ENEMIES CŨ
             DeleteOldDummy("Dummy_Enemy_1");
             DeleteOldDummy("Dummy_Enemy_2");
             DeleteOldDummy("Dummy_Enemy_3");
@@ -312,7 +348,7 @@ namespace DungeonGame.EditorScripts
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            Debug.Log("<color=#00FF99><b>[Giai Đoạn 2] THÀNH CÔNG RỰC RỠ! Đã kích hoạt Thế Giới Mở Vô Tận, Spawner sinh quái dồn dập và HUD cộng điểm lên màn hình!</b></color>");
+            Debug.Log("<color=#00FF99><b>[Giai Đoạn 2] NÂNG CẤP HOÀN TẤT! Bản đồ & Nhân vật RPG 64x64 siêu đẹp, Gian Hàng Ma Thuật tự spawn theo mốc điểm. Nhấn PLAY để trải nghiệm ngay!</b></color>");
         }
 
         private static void DeleteOldDummy(string name)
@@ -340,7 +376,7 @@ namespace DungeonGame.EditorScripts
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
 
             var col = obj.AddComponent<CircleCollider2D>();
-            col.radius = 0.45f;
+            col.radius = 0.5f;
 
             var health = obj.AddComponent<HealthComponent>();
             SerializedObject hSo = new SerializedObject(health);
@@ -366,7 +402,6 @@ namespace DungeonGame.EditorScripts
 
         private static void CreateOrUpdateHudCanvas()
         {
-            // Xóa sạch tất cả Canvas cũ trong Scene để GameUIManager độc quyền hiển thị, không bị lặp text
             foreach (var c in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
             {
                 if (c != null && !EditorUtility.IsPersistent(c.gameObject))
@@ -383,128 +418,417 @@ namespace DungeonGame.EditorScripts
             Object.DestroyImmediate(tex);
         }
 
-        // ================= VẼ PIXEL ART RPG =================
-        private static Texture2D GenerateKnightHero()
+        // ================= VẼ PIXEL ART RPG CAO CẤP (64x64 & 48x48) =================
+
+        /// <summary>
+        /// Hiệp Sĩ RPG (64x64): Giáp sắt viền vàng kim, áo choàng đỏ hoàng gia, mũ chiến binh lông vũ lấp lánh và kính ngắm dạ quang
+        /// </summary>
+        private static Texture2D GenerateKnightHero64()
         {
-            Texture2D tex = CreateEmptyTex(32, 32);
-            Color armor = new Color(0.75f, 0.78f, 0.85f);
-            Color gold = new Color(0.95f, 0.78f, 0.2f);
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color outline = new Color(0.1f, 0.1f, 0.15f);
+            Color armorDark = new Color(0.45f, 0.5f, 0.6f);
+            Color armorMid = new Color(0.7f, 0.75f, 0.85f);
+            Color armorLight = new Color(0.9f, 0.95f, 1f);
+            Color gold = new Color(1f, 0.82f, 0.2f);
+            Color goldDark = new Color(0.75f, 0.55f, 0.1f);
+            Color capeDark = new Color(0.55f, 0.1f, 0.15f);
+            Color capeBright = new Color(0.9f, 0.22f, 0.25f);
             Color visorGlow = new Color(0.2f, 0.95f, 1f);
-            Color cape = new Color(0.85f, 0.2f, 0.25f);
-            Color boots = new Color(0.25f, 0.2f, 0.15f);
+            Color bootsLeather = new Color(0.35f, 0.25f, 0.18f);
 
-            FillRect(tex, 8, 4, 16, 18, cape);
-            FillRect(tex, 10, 2, 4, 5, boots);
-            FillRect(tex, 18, 2, 4, 5, boots);
-            FillRect(tex, 9, 7, 14, 12, armor);
-            FillRect(tex, 11, 7, 10, 3, gold);
-            FillRect(tex, 8, 18, 16, 12, armor);
-            FillRect(tex, 14, 29, 4, 3, gold);
-            FillRect(tex, 11, 23, 10, 3, Color.black);
-            FillRect(tex, 13, 23, 2, 2, visorGlow);
-            FillRect(tex, 17, 23, 2, 2, visorGlow);
+            // 1. Áo choàng đỏ phía sau (Cape)
+            FillRect(tex, 16, 6, 32, 38, capeDark);
+            FillRect(tex, 18, 10, 28, 30, capeBright);
+            // Nếp gấp áo choàng
+            FillRect(tex, 24, 8, 4, 30, capeDark);
+            FillRect(tex, 36, 8, 4, 30, capeDark);
 
-            tex.Apply();
-            return tex;
-        }
+            // 2. Chân và Ủng chiến binh (Boots)
+            FillRect(tex, 20, 4, 8, 12, outline);
+            FillRect(tex, 36, 4, 8, 12, outline);
+            FillRect(tex, 22, 6, 5, 8, bootsLeather);
+            FillRect(tex, 38, 6, 5, 8, bootsLeather);
+            // Bọc gối thép
+            FillRect(tex, 21, 14, 7, 5, armorMid);
+            FillRect(tex, 37, 14, 7, 5, armorMid);
 
-        private static Texture2D GenerateDemonSlime()
-        {
-            Texture2D tex = CreateEmptyTex(32, 32);
-            Color slimeBody = new Color(0.92f, 0.2f, 0.35f);
-            Color coreGlow = new Color(1f, 0.85f, 0.2f);
+            // 3. Giáp ngực và thắt lưng (Chestplate & Belt)
+            FillRect(tex, 18, 18, 28, 22, outline);
+            FillRect(tex, 20, 20, 24, 18, armorMid);
+            // Điểm sáng kim loại
+            FillRect(tex, 22, 24, 8, 12, armorLight);
+            FillRect(tex, 34, 24, 8, 12, armorDark);
+            // Thắt lưng vàng
+            FillRect(tex, 20, 19, 24, 4, goldDark);
+            FillRect(tex, 29, 18, 6, 6, gold); // Khóa thắt lưng vàng sáng
 
-            FillCircle(tex, 16, 12, 12, slimeBody);
-            FillCircle(tex, 16, 21, 6, slimeBody);
-            FillCircle(tex, 16, 13, 5, coreGlow);
-            FillRect(tex, 10, 16, 4, 4, Color.yellow);
-            FillRect(tex, 18, 16, 4, 4, Color.yellow);
-            FillRect(tex, 12, 17, 2, 2, Color.black);
-            FillRect(tex, 18, 17, 2, 2, Color.black);
-            FillRect(tex, 13, 10, 2, 2, Color.white);
-            FillRect(tex, 17, 10, 2, 2, Color.white);
+            // 4. Giáp vai dũng mãnh (Pauldrons)
+            FillCircle(tex, 16, 36, 7, outline);
+            FillCircle(tex, 16, 36, 5, armorMid);
+            FillCircle(tex, 16, 36, 3, gold);
 
-            tex.Apply();
-            return tex;
-        }
+            FillCircle(tex, 48, 36, 7, outline);
+            FillCircle(tex, 48, 36, 5, armorMid);
+            FillCircle(tex, 48, 36, 3, gold);
 
-        private static Texture2D GenerateSkeleton()
-        {
-            Texture2D tex = CreateEmptyTex(32, 32);
-            Color bone = new Color(0.9f, 0.9f, 0.82f);
-            Color darkRobe = new Color(0.2f, 0.18f, 0.28f);
-            Color voidEye = new Color(0.85f, 0.2f, 0.95f);
+            // 5. Mũ Giáp Hiệp Sĩ (Knight Helm)
+            FillRect(tex, 22, 38, 20, 20, outline);
+            FillRect(tex, 24, 40, 16, 16, armorMid);
+            FillRect(tex, 26, 42, 6, 12, armorLight); // Highlight
+            // Viền vàng trên mũ
+            FillRect(tex, 22, 54, 20, 3, gold);
 
-            FillRect(tex, 8, 3, 16, 16, darkRobe);
-            FillRect(tex, 12, 10, 8, 2, bone);
-            FillCircle(tex, 16, 22, 7, bone);
-            FillRect(tex, 13, 16, 6, 4, bone);
-            FillRect(tex, 12, 21, 3, 3, Color.black);
-            FillRect(tex, 17, 21, 3, 3, Color.black);
-            FillRect(tex, 13, 22, 1, 1, voidEye);
-            FillRect(tex, 18, 22, 1, 1, voidEye);
+            // Kính ngắm dạ quang (Glowing Blue Visor)
+            FillRect(tex, 24, 46, 16, 4, Color.black);
+            FillRect(tex, 26, 47, 5, 2, visorGlow);
+            FillRect(tex, 33, 47, 5, 2, visorGlow);
 
-            tex.Apply();
-            return tex;
-        }
-
-        private static Texture2D GenerateFireDemon()
-        {
-            Texture2D tex = CreateEmptyTex(32, 32);
-            Color rock = new Color(0.22f, 0.18f, 0.2f);
-            Color lava = new Color(1f, 0.45f, 0.05f);
-            Color horns = new Color(0.7f, 0.15f, 0.15f);
-
-            FillCircle(tex, 16, 14, 11, rock);
-            FillRect(tex, 10, 12, 12, 3, lava);
-            FillRect(tex, 7, 22, 4, 7, horns);
-            FillRect(tex, 21, 22, 4, 7, horns);
-            FillRect(tex, 11, 16, 3, 3, Color.yellow);
-            FillRect(tex, 18, 16, 3, 3, Color.yellow);
+            // Lông vũ đỏ hoàng gia trên chóp mũ
+            FillRect(tex, 30, 56, 4, 7, gold);
+            FillCircle(tex, 32, 60, 4, capeBright);
+            FillCircle(tex, 35, 58, 3, capeDark);
 
             tex.Apply();
             return tex;
         }
 
-        private static Texture2D GenerateMagicStaff()
+        /// <summary>
+        /// Quái Slime Quỷ 64x64: Thân thạch lựu ma quái nhiều lớp bóng bẩy, lõi dung nham rực sáng, sừng quỷ nhọn hoắt và nanh sắc
+        /// </summary>
+        private static Texture2D GenerateDemonSlime64()
         {
-            Texture2D tex = CreateEmptyTex(32, 16);
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color outline = new Color(0.25f, 0.05f, 0.1f);
+            Color slimeOuter = new Color(0.85f, 0.15f, 0.35f);
+            Color slimeMid = new Color(0.98f, 0.3f, 0.5f);
+            Color slimeLight = new Color(1f, 0.65f, 0.8f);
+            Color coreFire = new Color(1f, 0.85f, 0.2f);
+            Color horns = new Color(0.18f, 0.15f, 0.25f);
+            Color hornsTip = new Color(1f, 0.4f, 0.1f);
+
+            // Sừng Quỷ (Demon Horns)
+            FillRect(tex, 12, 42, 8, 14, horns);
+            FillRect(tex, 10, 50, 6, 8, hornsTip);
+            FillRect(tex, 44, 42, 8, 14, horns);
+            FillRect(tex, 48, 50, 6, 8, hornsTip);
+
+            // Thân Slime bầu bĩnh hình giọt nước
+            FillCircle(tex, 32, 26, 25, outline);
+            FillCircle(tex, 32, 26, 23, slimeOuter);
+            FillCircle(tex, 32, 28, 19, slimeMid);
+
+            // Lõi Ma Thuật Rực Lửa bên trong
+            FillCircle(tex, 32, 24, 11, coreFire);
+            FillCircle(tex, 32, 24, 6, Color.white);
+
+            // Vệt bóng sáng bề mặt thạch (Gloss Highlight)
+            FillCircle(tex, 24, 38, 5, slimeLight);
+            FillCircle(tex, 23, 39, 2, Color.white);
+
+            // Mắt quỷ hung dữ phát sáng
+            FillRect(tex, 20, 28, 8, 8, Color.black);
+            FillRect(tex, 36, 28, 8, 8, Color.black);
+            FillRect(tex, 22, 30, 4, 4, Color.yellow);
+            FillRect(tex, 38, 30, 4, 4, Color.yellow);
+            FillRect(tex, 24, 31, 2, 2, Color.red);
+            FillRect(tex, 40, 31, 2, 2, Color.red);
+
+            // Răng nanh nhọn
+            FillRect(tex, 26, 17, 3, 4, Color.white);
+            FillRect(tex, 35, 17, 3, 4, Color.white);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Xương Ma Ám 64x64: Hộp sọ cổ đại rực mắt tím hư không, áo choàng phù thủy rách rưới và ngọn lửa linh hồn
+        /// </summary>
+        private static Texture2D GenerateSkeleton64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color outline = new Color(0.1f, 0.08f, 0.15f);
+            Color boneDark = new Color(0.7f, 0.68f, 0.6f);
+            Color boneMid = new Color(0.92f, 0.9f, 0.82f);
+            Color boneLight = new Color(1f, 1f, 0.95f);
+            Color robeDark = new Color(0.18f, 0.14f, 0.26f);
+            Color robeMid = new Color(0.32f, 0.25f, 0.45f);
+            Color soulFlame = new Color(0.85f, 0.2f, 0.98f);
+            Color soulLight = new Color(0.4f, 0.9f, 1f);
+
+            // Áo choàng tử thần tơi tả
+            FillRect(tex, 16, 4, 32, 36, outline);
+            FillRect(tex, 18, 6, 28, 32, robeDark);
+            FillRect(tex, 22, 10, 20, 24, robeMid);
+
+            // Lồng ngực xương & Ngọn lửa linh hồn xanh tím
+            FillRect(tex, 26, 18, 12, 14, outline);
+            FillCircle(tex, 32, 25, 5, soulFlame);
+            FillCircle(tex, 32, 25, 2, soulLight);
+
+            // Các dải xương sườn
+            FillRect(tex, 24, 28, 16, 2, boneMid);
+            FillRect(tex, 25, 24, 14, 2, boneMid);
+            FillRect(tex, 26, 20, 12, 2, boneMid);
+
+            // Giáp vai gai nhọn
+            FillRect(tex, 12, 34, 8, 10, boneDark);
+            FillRect(tex, 44, 34, 8, 10, boneDark);
+
+            // Đầu lâu Gothic (Skull)
+            FillCircle(tex, 32, 46, 14, outline);
+            FillCircle(tex, 32, 46, 12, boneMid);
+            FillCircle(tex, 30, 48, 8, boneLight);
+
+            // Quai hàm và răng xương
+            FillRect(tex, 26, 36, 12, 6, boneDark);
+            FillRect(tex, 27, 37, 2, 3, boneLight);
+            FillRect(tex, 31, 37, 2, 3, boneLight);
+            FillRect(tex, 35, 37, 2, 3, boneLight);
+
+            // Hốc mắt đen ngòm & Ngọn lửa tím hư không (Void Eyes)
+            FillCircle(tex, 26, 46, 4, Color.black);
+            FillCircle(tex, 38, 46, 4, Color.black);
+            FillCircle(tex, 26, 46, 2, soulFlame);
+            FillCircle(tex, 38, 46, 2, soulFlame);
+            FillRect(tex, 26, 46, 1, 1, Color.white);
+            FillRect(tex, 38, 46, 1, 1, Color.white);
+
+            // Hốc mũi tam giác
+            FillRect(tex, 31, 41, 2, 3, Color.black);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Quỷ Dung Nham 64x64: Khổng lồ dung nham đá núi lửa, cặp sừng đại ma vương rực lửa và vết nứt dung nham sôi sục
+        /// </summary>
+        private static Texture2D GenerateFireDemon64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color rockDark = new Color(0.16f, 0.12f, 0.14f);
+            Color rockMid = new Color(0.28f, 0.22f, 0.25f);
+            Color lavaCore = new Color(1f, 0.25f, 0.05f);
+            Color lavaBright = new Color(1f, 0.75f, 0.1f);
+            Color hornColor = new Color(0.45f, 0.12f, 0.14f);
+            Color hornLight = new Color(0.85f, 0.25f, 0.15f);
+
+            // Cặp sừng đại quỷ uốn cong khổng lồ
+            FillCircle(tex, 14, 48, 9, hornColor);
+            FillCircle(tex, 10, 55, 7, hornLight);
+            FillCircle(tex, 50, 48, 9, hornColor);
+            FillCircle(tex, 54, 55, 7, hornLight);
+
+            // Thân quỷ đá núi lửa vạm vỡ
+            FillCircle(tex, 32, 28, 22, rockDark);
+            FillCircle(tex, 32, 28, 20, rockMid);
+
+            // Vai lửa rực cháy
+            FillCircle(tex, 12, 34, 7, lavaCore);
+            FillCircle(tex, 12, 34, 4, lavaBright);
+            FillCircle(tex, 52, 34, 7, lavaCore);
+            FillCircle(tex, 52, 34, 4, lavaBright);
+
+            // Các vết nứt dung nham nứt toác trên ngực
+            FillRect(tex, 20, 26, 24, 4, lavaCore);
+            FillRect(tex, 22, 27, 20, 2, lavaBright);
+            FillRect(tex, 30, 16, 4, 18, lavaCore);
+            FillRect(tex, 31, 18, 2, 14, lavaBright);
+            FillRect(tex, 24, 20, 16, 3, lavaCore);
+
+            // Đầu quỷ & Mắt vàng rực
+            FillCircle(tex, 32, 44, 12, rockDark);
+            FillCircle(tex, 32, 44, 10, rockMid);
+
+            // Mắt lửa
+            FillRect(tex, 23, 44, 6, 5, lavaCore);
+            FillRect(tex, 35, 44, 6, 5, lavaCore);
+            FillRect(tex, 24, 45, 3, 3, lavaBright);
+            FillRect(tex, 36, 45, 3, 3, lavaBright);
+
+            // Miệng dung nham đỏ rực
+            FillRect(tex, 26, 36, 12, 4, lavaCore);
+            FillRect(tex, 28, 37, 8, 2, lavaBright);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Gian Hàng Ma Thuật (Shop Stall) 64x64: Quầy gỗ cổ, mái vòm sọc tím vàng hoàng gia, quả cầu tiên tri phát sáng và bình thuốc phép
+        /// </summary>
+        private static Texture2D GenerateShopStall64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color woodDark = new Color(0.35f, 0.2f, 0.12f);
+            Color woodMid = new Color(0.55f, 0.35f, 0.2f);
+            Color woodLight = new Color(0.75f, 0.5f, 0.3f);
+            Color stoneBase = new Color(0.25f, 0.25f, 0.3f);
+            Color gold = new Color(1f, 0.85f, 0.2f);
+            Color clothPurple = new Color(0.42f, 0.18f, 0.55f);
+            Color orbGlow = new Color(0.2f, 0.95f, 1f);
+            Color potionRed = new Color(0.95f, 0.2f, 0.25f);
+            Color potionBlue = new Color(0.2f, 0.5f, 1f);
+
+            // 1. Bệ đá móng nền
+            FillRect(tex, 8, 4, 48, 8, stoneBase);
+            FillRect(tex, 10, 8, 44, 3, new Color(0.35f, 0.35f, 0.42f));
+
+            // 2. Quầy hàng bằng gỗ quý
+            FillRect(tex, 12, 12, 40, 16, woodDark);
+            FillRect(tex, 14, 14, 36, 12, woodMid);
+            // Các tấm ván gỗ
+            FillRect(tex, 14, 18, 36, 2, woodDark);
+            FillRect(tex, 14, 22, 36, 2, woodDark);
+            // Mặt bàn quầy gỗ nhô ra
+            FillRect(tex, 10, 26, 44, 4, woodLight);
+
+            // 3. Vật phẩm phép thuật trên bàn
+            // Quả cầu pha lê tiên tri rực sáng bên trái
+            FillRect(tex, 18, 30, 6, 2, gold); // Đế vàng
+            FillCircle(tex, 21, 36, 6, orbGlow);
+            FillCircle(tex, 20, 38, 2, Color.white);
+
+            // Bình máu đỏ phục hồi
+            FillRect(tex, 32, 30, 4, 6, potionRed);
+            FillRect(tex, 33, 36, 2, 2, woodLight); // Nút bần
+
+            // Bình mana xanh lam tốc độ
+            FillRect(tex, 40, 30, 4, 6, potionBlue);
+            FillRect(tex, 41, 36, 2, 2, woodLight);
+
+            // 4. Hai cột trụ gỗ đỡ mái
+            FillRect(tex, 12, 28, 4, 24, woodDark);
+            FillRect(tex, 13, 28, 2, 24, woodLight);
+            FillRect(tex, 48, 28, 4, 24, woodDark);
+            FillRect(tex, 49, 28, 2, 24, woodLight);
+
+            // 5. Mái bạt vòm sọc tím & vàng hoàng gia (Canopy Awning)
+            FillRect(tex, 6, 48, 52, 12, woodDark);
+            // Kẻ sọc đan xen giữa tím và vàng
+            for (int x = 8; x < 56; x += 8)
+            {
+                FillRect(tex, x, 50, 4, 10, clothPurple);
+                FillRect(tex, x + 4, 50, 4, 10, gold);
+            }
+            // Diềm lượn sóng của mái hiên
+            for (int x = 8; x < 56; x += 4)
+            {
+                FillCircle(tex, x + 2, 49, 2, gold);
+            }
+
+            // 6. Đèn lồng ma thuật treo giữa quầy
+            FillRect(tex, 31, 46, 2, 5, woodDark);
+            FillCircle(tex, 32, 44, 3, gold);
+            FillCircle(tex, 32, 44, 1, Color.white);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Gạch Lát Hầm Ngục Cổ Đại 64x64: Gạch phiến đá ghép nối liền mạch, viền chạm khắc sâu, điểm rêu phong và cổ tự ma pháp
+        /// </summary>
+        private static Texture2D GenerateDungeonFloor64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color stoneDark = new Color(0.12f, 0.12f, 0.16f); // Rãnh gạch
+            Color stoneMid1 = new Color(0.24f, 0.24f, 0.30f); // Mặt gạch chính
+            Color stoneMid2 = new Color(0.20f, 0.20f, 0.25f); // Gạch phụ
+            Color stoneHighlight = new Color(0.32f, 0.32f, 0.40f); // Viền sáng
+            Color mossGreen = new Color(0.15f, 0.35f, 0.22f); // Rêu phong
+            Color runeGlow = new Color(0.3f, 0.6f, 0.85f, 0.45f); // Cổ tự mờ ảo
+
+            // Nền tổng thể
+            FillRect(tex, 0, 0, 64, 64, stoneDark);
+
+            // 4 Phiến đá lớn ghép đối xứng
+            // Viên 1: Trên trái
+            FillRect(tex, 2, 34, 28, 28, stoneMid1);
+            FillRect(tex, 4, 60, 24, 1, stoneHighlight);
+            FillRect(tex, 4, 36, 1, 24, stoneHighlight);
+
+            // Viên 2: Trên phải
+            FillRect(tex, 34, 34, 28, 28, stoneMid2);
+            FillRect(tex, 36, 60, 24, 1, stoneHighlight);
+            FillRect(tex, 36, 36, 1, 24, stoneHighlight);
+
+            // Viên 3: Dưới trái
+            FillRect(tex, 2, 2, 28, 28, stoneMid2);
+            FillRect(tex, 4, 28, 24, 1, stoneHighlight);
+            FillRect(tex, 4, 4, 1, 24, stoneHighlight);
+
+            // Viên 4: Dưới phải
+            FillRect(tex, 34, 2, 28, 28, stoneMid1);
+            FillRect(tex, 36, 28, 24, 1, stoneHighlight);
+            FillRect(tex, 36, 4, 1, 24, stoneHighlight);
+
+            // Mảng rêu phong tự nhiên ở các góc rãnh đá
+            FillCircle(tex, 32, 32, 4, mossGreen);
+            FillCircle(tex, 2, 32, 3, mossGreen);
+            FillCircle(tex, 62, 32, 3, mossGreen);
+            FillCircle(tex, 32, 2, 3, mossGreen);
+            FillCircle(tex, 32, 62, 3, mossGreen);
+
+            // Khắc phù văn ma thuật mờ ở trung tâm
+            FillCircle(tex, 32, 32, 8, runeGlow);
+            FillCircle(tex, 32, 32, 6, stoneDark);
+            FillRect(tex, 31, 27, 2, 10, runeGlow);
+            FillRect(tex, 27, 31, 10, 2, runeGlow);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Gậy Phép Hỏa Long (48x24)
+        /// </summary>
+        private static Texture2D GenerateMagicStaff48()
+        {
+            Texture2D tex = CreateEmptyTex(48, 24);
+
             Color wood = new Color(0.55f, 0.35f, 0.18f);
-            Color gold = new Color(0.95f, 0.8f, 0.2f);
-            Color gem = new Color(0.95f, 0.2f, 0.3f);
+            Color gold = new Color(1f, 0.85f, 0.2f);
+            Color ruby = new Color(1f, 0.2f, 0.35f);
+            Color rubyLight = new Color(1f, 0.7f, 0.8f);
 
-            FillRect(tex, 2, 7, 22, 3, wood);
-            FillRect(tex, 10, 6, 3, 5, gold);
-            FillRect(tex, 22, 4, 4, 9, gold);
-            FillCircle(tex, 28, 8, 4, gem);
+            // Cán gậy phép gỗ uốn lượn
+            FillRect(tex, 4, 10, 32, 4, wood);
+            FillRect(tex, 16, 9, 4, 6, gold);
+            FillRect(tex, 28, 9, 4, 6, gold);
+
+            // Vuốt rồng bằng vàng ôm ngọc
+            FillRect(tex, 34, 6, 6, 12, gold);
+            FillCircle(tex, 42, 12, 6, ruby);
+            FillCircle(tex, 41, 14, 2, rubyLight);
 
             tex.Apply();
             return tex;
         }
 
-        private static Texture2D GenerateFireballBullet()
-        {
-            Texture2D tex = CreateEmptyTex(16, 16);
-            FillCircle(tex, 8, 8, 6, new Color(1f, 0.25f, 0.05f));
-            FillCircle(tex, 8, 8, 4, new Color(1f, 0.7f, 0.1f));
-            FillCircle(tex, 8, 8, 2, Color.white);
-            tex.Apply();
-            return tex;
-        }
-
-        private static Texture2D GenerateDungeonFloor()
+        /// <summary>
+        /// Đạn Lửa Phép Thuật (32x32)
+        /// </summary>
+        private static Texture2D GenerateFireballBullet32()
         {
             Texture2D tex = CreateEmptyTex(32, 32);
-            Color stone1 = new Color(0.24f, 0.24f, 0.3f);
-            Color stone2 = new Color(0.18f, 0.18f, 0.23f);
-            Color border = new Color(0.12f, 0.12f, 0.16f);
 
-            FillRect(tex, 0, 0, 32, 32, stone1);
-            FillRect(tex, 2, 2, 13, 13, stone2);
-            FillRect(tex, 17, 2, 13, 13, stone2);
-            FillRect(tex, 2, 17, 28, 13, stone2);
-            FillRect(tex, 0, 15, 32, 2, border);
-            FillRect(tex, 15, 0, 2, 16, border);
+            Color flameOuter = new Color(1f, 0.2f, 0.05f);
+            Color flameMid = new Color(1f, 0.65f, 0.1f);
+            Color flameCore = new Color(1f, 0.95f, 0.4f);
+
+            FillCircle(tex, 16, 16, 11, flameOuter);
+            FillCircle(tex, 16, 16, 8, flameMid);
+            FillCircle(tex, 16, 16, 4, flameCore);
+            FillCircle(tex, 15, 17, 2, Color.white);
 
             tex.Apply();
             return tex;
