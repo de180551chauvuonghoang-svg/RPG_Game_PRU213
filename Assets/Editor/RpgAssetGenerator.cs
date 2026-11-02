@@ -145,10 +145,10 @@ namespace DungeonGame.EditorScripts
             AssetDatabase.DeleteAsset("Assets/Prefabs/Enemy_Demon.prefab");
             AssetDatabase.Refresh();
 
-            // 3. TẠO 3 PREFAB QUÁI VẬT RPG (MỖI LẦN CHẠM VÀO TRỪ ĐÚNG 5 MÁU)
-            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 50f, 3.4f, 100, 5f, 1.3f);
-            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 100f, 2.6f, 250, 5f, 1.4f);
-            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 180f, 2.0f, 500, 5f, 1.6f);
+            // 3. TẠO 3 PREFAB QUÁI VẬT RPG (TỐC ĐỘ VỪA PHẢI, MỖI LẦN CHẠM VÀO TRỪ ĐÚNG 5 MÁU)
+            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 40f, 2.4f, 100, 5f, 1.3f);
+            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 80f, 1.8f, 250, 5f, 1.4f);
+            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 150f, 1.3f, 500, 5f, 1.6f);
 
             // 4. CẬP NHẬT PLAYER (MÁU 100% VÀ BẢO VỆ I-FRAMES 0.5s)
             PlayerController player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
