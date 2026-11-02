@@ -363,98 +363,99 @@ namespace DungeonGame.EditorScripts
 
         private static void CreateOrUpdateHudCanvas()
         {
-            Canvas existingCanvas = Object.FindAnyObjectByType<Canvas>();
-            GameObject canvasObj;
-
-            if (existingCanvas == null)
+            try
             {
-                canvasObj = new GameObject("HUD_Canvas");
-                Canvas canvas = canvasObj.AddComponent<Canvas>();
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-                scaler.referenceResolution = new Vector2(1920, 1080);
-                canvasObj.AddComponent<GraphicRaycaster>();
+                Canvas existingCanvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
+                GameObject canvasObj;
+
+                if (existingCanvas == null)
+                {
+                    canvasObj = new GameObject("HUD_Canvas", typeof(RectTransform));
+                    Canvas canvas = canvasObj.AddComponent<Canvas>();
+                    canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                    CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+                    scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                    scaler.referenceResolution = new Vector2(1920, 1080);
+                    canvasObj.AddComponent<GraphicRaycaster>();
+                }
+                else
+                {
+                    canvasObj = existingCanvas.gameObject;
+                }
+
+                GameUIManager uiMgr = canvasObj.GetComponent<GameUIManager>();
+                if (uiMgr == null) uiMgr = canvasObj.AddComponent<GameUIManager>();
+
+                // 1. TEXT ĐIỂM SỐ
+                Text scoreText = CreateTextElement(canvasObj.transform, "ScoreText", "ĐIỂM: 0", 
+                    new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f), 
+                    new Vector2(-150, -50), new Vector2(300, 60), 32, new Color(1f, 0.85f, 0.2f), TextAnchor.MiddleRight);
+
+                // 2. TEXT TIÊU DIỆT
+                Text killsText = CreateTextElement(canvasObj.transform, "KillsText", "TIÊU DIỆT: 0", 
+                    new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f), 
+                    new Vector2(-150, -100), new Vector2(300, 50), 24, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleRight);
+
+                // 3. TEXT THỜI GIAN
+                Text timeText = CreateTextElement(canvasObj.transform, "TimeText", "THỜI GIAN: 00:00", 
+                    new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), 
+                    new Vector2(0, -50), new Vector2(350, 60), 28, Color.white, TextAnchor.MiddleCenter);
+
+                // 4. THANH MÁU HIỆP SĨ
+                Transform hpContainer = canvasObj.transform.Find("HealthBarContainer");
+                if (hpContainer == null)
+                {
+                    GameObject hpObj = new GameObject("HealthBarContainer", typeof(RectTransform));
+                    hpObj.transform.SetParent(canvasObj.transform, false);
+                    hpContainer = hpObj.transform;
+                }
+                RectTransform hpRt = hpContainer.GetComponent<RectTransform>();
+                hpRt.anchorMin = new Vector2(0, 1);
+                hpRt.anchorMax = new Vector2(0, 1);
+                hpRt.pivot = new Vector2(0, 1);
+                hpRt.anchoredPosition = new Vector2(40, -40);
+                hpRt.sizeDelta = new Vector2(320, 36);
+
+                Image hpBg = hpContainer.GetComponent<Image>();
+                if (hpBg == null) hpBg = hpContainer.gameObject.AddComponent<Image>();
+                hpBg.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+
+                Transform hpFillTrans = hpContainer.Find("Fill");
+                if (hpFillTrans == null)
+                {
+                    GameObject fObj = new GameObject("Fill", typeof(RectTransform));
+                    fObj.transform.SetParent(hpContainer, false);
+                    hpFillTrans = fObj.transform;
+                }
+                RectTransform fillRt = hpFillTrans.GetComponent<RectTransform>();
+                fillRt.anchorMin = Vector2.zero;
+                fillRt.anchorMax = Vector2.one;
+                fillRt.sizeDelta = Vector2.zero;
+
+                Image fillImg = hpFillTrans.GetComponent<Image>();
+                if (fillImg == null) fillImg = hpFillTrans.gameObject.AddComponent<Image>();
+                fillImg.color = new Color(0.95f, 0.2f, 0.25f, 1f);
+                fillImg.type = Image.Type.Filled;
+                fillImg.fillMethod = Image.FillMethod.Horizontal;
+                fillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+                fillImg.fillAmount = 1f;
+
+                Text healthText = CreateTextElement(hpContainer, "HealthText", "HP: 100 / 100",
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    Vector2.zero, new Vector2(300, 30), 18, Color.white, TextAnchor.MiddleCenter);
+
+                SerializedObject uiSo = new SerializedObject(uiMgr);
+                uiSo.FindProperty("scoreText").objectReferenceValue = scoreText;
+                uiSo.FindProperty("killsText").objectReferenceValue = killsText;
+                uiSo.FindProperty("timeText").objectReferenceValue = timeText;
+                uiSo.FindProperty("healthBarFill").objectReferenceValue = fillImg;
+                uiSo.FindProperty("healthText").objectReferenceValue = healthText;
+                uiSo.ApplyModifiedProperties();
             }
-            else
+            catch (System.Exception ex)
             {
-                canvasObj = existingCanvas.gameObject;
+                Debug.LogWarning($"[HUD] Sử dụng InGameHUD làm giao diện chính: {ex.Message}");
             }
-
-            GameUIManager uiMgr = canvasObj.GetComponent<GameUIManager>();
-            if (uiMgr == null) uiMgr = canvasObj.AddComponent<GameUIManager>();
-
-            // 1. TEXT ĐIỂM SỐ (Góc trên bên phải)
-            Text scoreText = CreateTextElement(canvasObj.transform, "ScoreText", "ĐIỂM: 0", 
-                new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f), 
-                new Vector2(-150, -50), new Vector2(300, 60), 32, new Color(1f, 0.85f, 0.2f), TextAnchor.MiddleRight);
-
-            // 2. TEXT TIÊU DIỆT (Dưới Điểm số)
-            Text killsText = CreateTextElement(canvasObj.transform, "KillsText", "TIÊU DIỆT: 0", 
-                new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f), 
-                new Vector2(-150, -100), new Vector2(300, 50), 24, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleRight);
-
-            // 3. TEXT THỜI GIAN (Chính giữa trên đỉnh)
-            Text timeText = CreateTextElement(canvasObj.transform, "TimeText", "THỜI GIAN: 00:00", 
-                new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), 
-                new Vector2(0, -50), new Vector2(350, 60), 28, Color.white, TextAnchor.MiddleCenter);
-
-            // 4. THANH MÁU HIỆP SĨ (Góc trên bên trái)
-            Transform hpContainer = canvasObj.transform.Find("HealthBarContainer");
-            if (hpContainer == null)
-            {
-                GameObject hpObj = new GameObject("HealthBarContainer");
-                hpObj.transform.SetParent(canvasObj.transform, false);
-                hpContainer = hpObj.transform;
-            }
-            RectTransform hpRt = hpContainer.GetComponent<RectTransform>();
-            if (hpRt == null) hpRt = hpContainer.gameObject.AddComponent<RectTransform>();
-            hpRt.anchorMin = new Vector2(0, 1);
-            hpRt.anchorMax = new Vector2(0, 1);
-            hpRt.pivot = new Vector2(0, 1);
-            hpRt.anchoredPosition = new Vector2(40, -40);
-            hpRt.sizeDelta = new Vector2(320, 36);
-
-            // Nền đen thanh máu
-            Image hpBg = hpContainer.GetComponent<Image>();
-            if (hpBg == null) hpBg = hpContainer.gameObject.AddComponent<Image>();
-            hpBg.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
-
-            // Ruột đỏ thanh máu (Fill)
-            Transform hpFillTrans = hpContainer.Find("Fill");
-            if (hpFillTrans == null)
-            {
-                GameObject fObj = new GameObject("Fill");
-                fObj.transform.SetParent(hpContainer, false);
-                hpFillTrans = fObj.transform;
-            }
-            RectTransform fillRt = hpFillTrans.GetComponent<RectTransform>();
-            if (fillRt == null) fillRt = hpFillTrans.gameObject.AddComponent<RectTransform>();
-            fillRt.anchorMin = Vector2.zero;
-            fillRt.anchorMax = Vector2.one;
-            fillRt.sizeDelta = Vector2.zero;
-
-            Image fillImg = hpFillTrans.GetComponent<Image>();
-            if (fillImg == null) fillImg = hpFillTrans.gameObject.AddComponent<Image>();
-            fillImg.color = new Color(0.95f, 0.2f, 0.25f, 1f);
-            fillImg.type = Image.Type.Filled;
-            fillImg.fillMethod = Image.FillMethod.Horizontal;
-            fillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
-            fillImg.fillAmount = 1f;
-
-            // Chữ hiển thị HP (HP: 100 / 100)
-            Text healthText = CreateTextElement(hpContainer, "HealthText", "HP: 100 / 100",
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                Vector2.zero, new Vector2(300, 30), 18, Color.white, TextAnchor.MiddleCenter);
-
-            // Gán các tham chiếu vào GameUIManager
-            SerializedObject uiSo = new SerializedObject(uiMgr);
-            uiSo.FindProperty("scoreText").objectReferenceValue = scoreText;
-            uiSo.FindProperty("killsText").objectReferenceValue = killsText;
-            uiSo.FindProperty("timeText").objectReferenceValue = timeText;
-            uiSo.FindProperty("healthBarFill").objectReferenceValue = fillImg;
-            uiSo.FindProperty("healthText").objectReferenceValue = healthText;
-            uiSo.ApplyModifiedProperties();
         }
 
         private static Text CreateTextElement(Transform parent, string name, string text, 
@@ -463,13 +464,12 @@ namespace DungeonGame.EditorScripts
             Transform tTrans = parent.Find(name);
             if (tTrans == null)
             {
-                GameObject obj = new GameObject(name);
+                GameObject obj = new GameObject(name, typeof(RectTransform));
                 obj.transform.SetParent(parent, false);
                 tTrans = obj.transform;
             }
 
             RectTransform rt = tTrans.GetComponent<RectTransform>();
-            if (rt == null) rt = tTrans.gameObject.AddComponent<RectTransform>();
             rt.anchorMin = anchorMin;
             rt.anchorMax = anchorMax;
             rt.pivot = pivot;
