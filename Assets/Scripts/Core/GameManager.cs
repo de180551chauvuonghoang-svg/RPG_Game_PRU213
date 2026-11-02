@@ -1,4 +1,5 @@
 using System;
+using DungeonGame.Combat;
 using DungeonGame.Enemy;
 using DungeonGame.Player;
 using DungeonGame.World;
@@ -62,6 +63,7 @@ namespace DungeonGame.Core
         public int KillCount => killCount;
         public float SurvivalTime => survivalTime;
         public int CurrentStage => currentStage;
+        public bool IsBossDefeated => isBossDefeated;
         public BossController ActiveBoss => activeBoss;
         public bool IsBossActive => activeBoss != null && !activeBoss.IsDead;
         public int HighestStageCleared => PlayerPrefs.GetInt("HighestStageCleared", 0);

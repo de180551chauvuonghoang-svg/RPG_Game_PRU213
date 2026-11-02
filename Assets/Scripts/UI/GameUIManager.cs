@@ -316,7 +316,6 @@ namespace DungeonGame.UI
             // 1. Phím tắt tại Màn Hình Chính (MainMenu)
             if (state == GameState.MainMenu)
             {
-                bool pressStart = false;
 #if ENABLE_INPUT_SYSTEM
                 if (Keyboard.current != null)
                 {
