@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using DungeonGame.Core;
 using DungeonGame.Player;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace DungeonGame.Enemy
 {
     /// <summary>
     /// Hệ thống Spawner sinh quái vật xung quanh người chơi ở thế giới mở.
-    /// Tần suất và số lượng quái tăng dần theo thời gian sinh tồn (Difficulty Scaling).
+    /// Quái xuất hiện dồn dập ngay từ giây đầu tiên và tăng tiến độ khó theo thời gian.
+    /// Tự động nạp Prefabs dự phòng nếu bị mất liên kết.
     /// </summary>
     public class EnemySpawner : MonoBehaviour
     {
@@ -17,28 +21,28 @@ namespace DungeonGame.Enemy
         {
             public string enemyName;
             public GameObject prefab;
-            public int spawnWeight = 10; // Tỉ lệ xuất hiện
-            public float minSpawnTime = 0f; // Thời gian tối thiểu (giây) để bắt đầu xuất hiện
+            public int spawnWeight = 10;
+            public float minSpawnTime = 0f;
         }
 
         [Header("Danh sách các loại quái")]
         [SerializeField] private List<EnemyConfig> enemyConfigs = new List<EnemyConfig>();
 
-        [Header("Cài đặt Spawn")]
-        [Tooltip("Khoảng cách tối thiểu từ Player (ngoài viền màn hình)")]
-        [SerializeField] private float minSpawnRadius = 14f;
+        [Header("Cài đặt Spawn cự ly gần & dồn dập")]
+        [Tooltip("Khoảng cách tối thiểu từ Player (ngay sát mép viền màn hình)")]
+        [SerializeField] private float minSpawnRadius = 6.5f;
 
         [Tooltip("Khoảng cách tối đa từ Player")]
-        [SerializeField] private float maxSpawnRadius = 20f;
+        [SerializeField] private float maxSpawnRadius = 9.5f;
 
         [Tooltip("Thời gian chờ giữa 2 lần spawn ban đầu (giây)")]
-        [SerializeField] private float baseSpawnInterval = 1.5f;
+        [SerializeField] private float baseSpawnInterval = 0.8f;
 
         [Tooltip("Thời gian chờ tối thiểu khi quái spawn dồn dập nhất")]
-        [SerializeField] private float minSpawnInterval = 0.4f;
+        [SerializeField] private float minSpawnInterval = 0.3f;
 
         [Tooltip("Số lượng quái tối đa cùng lúc trên màn hình")]
-        [SerializeField] private int maxEnemiesAlive = 70;
+        [SerializeField] private int maxEnemiesAlive = 60;
 
         private Transform playerTarget;
         private float nextSpawnTime = 0f;
@@ -48,6 +52,61 @@ namespace DungeonGame.Enemy
         {
             currentSpawnInterval = baseSpawnInterval;
             FindPlayer();
+            ValidatePrefabs();
+
+            // Spawn ngay 4 con quái đầu tiên ở 4 hướng ngay giây số 0 để người chơi thấy quái lao tới ngay!
+            SpawnInitialWave();
+        }
+
+        private void ValidatePrefabs()
+        {
+            // Kiểm tra xem các prefab có bị null không, nếu có thì tự nạp lại
+            bool hasValidPrefab = false;
+            foreach (var cfg in enemyConfigs)
+            {
+                if (cfg.prefab != null)
+                {
+                    hasValidPrefab = true;
+                    break;
+                }
+            }
+
+            if (!hasValidPrefab)
+            {
+#if UNITY_EDITOR
+                GameObject slime = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Slime.prefab");
+                GameObject skeleton = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Skeleton.prefab");
+                GameObject demon = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Enemy_Demon.prefab");
+
+                enemyConfigs.Clear();
+                if (slime != null) enemyConfigs.Add(new EnemyConfig { enemyName = "Slime", prefab = slime, spawnWeight = 60, minSpawnTime = 0f });
+                if (skeleton != null) enemyConfigs.Add(new EnemyConfig { enemyName = "Skeleton", prefab = skeleton, spawnWeight = 30, minSpawnTime = 10f });
+                if (demon != null) enemyConfigs.Add(new EnemyConfig { enemyName = "Demon", prefab = demon, spawnWeight = 15, minSpawnTime = 20f });
+#endif
+            }
+        }
+
+        private void SpawnInitialWave()
+        {
+            if (playerTarget == null) FindPlayer();
+            if (playerTarget == null) return;
+
+            Vector2[] directions = new Vector2[]
+            {
+                Vector2.up * 5.5f,
+                Vector2.down * 5.5f,
+                Vector2.left * 6f,
+                Vector2.right * 6f
+            };
+
+            foreach (var offset in directions)
+            {
+                GameObject prefab = PickRandomEnemyPrefab();
+                if (prefab != null)
+                {
+                    Instantiate(prefab, playerTarget.position + new Vector3(offset.x, offset.y, 0f), Quaternion.identity);
+                }
+            }
         }
 
         private void Update()
@@ -58,21 +117,19 @@ namespace DungeonGame.Enemy
             if (playerTarget == null)
             {
                 FindPlayer();
-                return;
+                if (playerTarget == null) return;
             }
 
-            // Tăng dần độ khó: Càng sống lâu quái spawn càng nhanh
+            // Càng sống lâu quái spawn càng nhanh
             float time = GameManager.Instance != null ? GameManager.Instance.SurvivalTime : Time.time;
-            currentSpawnInterval = Mathf.Max(minSpawnInterval, baseSpawnInterval - (time * 0.015f));
+            currentSpawnInterval = Mathf.Max(minSpawnInterval, baseSpawnInterval - (time * 0.012f));
 
             if (Time.time >= nextSpawnTime)
             {
-                // Kiểm tra số lượng quái hiện tại (Type-Safe)
                 int currentEnemyCount = UnityEngine.Object.FindObjectsByType<EnemyController>(FindObjectsSortMode.None).Length;
                 if (currentEnemyCount < maxEnemiesAlive)
                 {
-                    // Khi sống lâu hơn, mỗi đợt có thể spawn từ 1 đến 3 con cùng lúc
-                    int batchSize = 1 + Mathf.FloorToInt(time / 45f);
+                    int batchSize = 1 + Mathf.FloorToInt(time / 30f);
                     for (int i = 0; i < batchSize; i++)
                     {
                         SpawnRandomEnemy();
@@ -92,9 +149,14 @@ namespace DungeonGame.Enemy
         private void SpawnRandomEnemy()
         {
             GameObject selectedPrefab = PickRandomEnemyPrefab();
-            if (selectedPrefab == null) return;
+            if (selectedPrefab == null)
+            {
+                ValidatePrefabs();
+                selectedPrefab = PickRandomEnemyPrefab();
+                if (selectedPrefab == null) return;
+            }
 
-            // Tính vị trí spawn ngẫu nhiên trên đường tròn ngoài tầm nhìn Camera
+            // Spawn ngay rìa màn hình để quái chạy vào thấy ngay
             Vector2 randomDir = UnityEngine.Random.insideUnitCircle.normalized;
             float randomDist = UnityEngine.Random.Range(minSpawnRadius, maxSpawnRadius);
             Vector3 spawnPos = playerTarget.position + new Vector3(randomDir.x, randomDir.y, 0f) * randomDist;
@@ -119,7 +181,15 @@ namespace DungeonGame.Enemy
                 }
             }
 
-            if (eligible.Count == 0) return null;
+            if (eligible.Count == 0)
+            {
+                // Fallback nếu chưa đến minSpawnTime của quái nào khác thì luôn cho quái đầu tiên spawn
+                foreach (var cfg in enemyConfigs)
+                {
+                    if (cfg.prefab != null) return cfg.prefab;
+                }
+                return null;
+            }
 
             int roll = UnityEngine.Random.Range(0, totalWeight);
             int accum = 0;

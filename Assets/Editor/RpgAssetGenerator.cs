@@ -236,7 +236,7 @@ namespace DungeonGame.EditorScripts
             if (gm == null) gm = managersObj.AddComponent<GameManager>();
 
             InGameHUD hud = managersObj.GetComponent<InGameHUD>();
-            if (hud == null) hud = managersObj.AddComponent<InGameHUD>();
+            if (hud != null) Object.DestroyImmediate(hud);
 
             ObjectPooler pooler = managersObj.GetComponent<ObjectPooler>();
             if (pooler == null) pooler = managersObj.AddComponent<ObjectPooler>();
