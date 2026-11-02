@@ -235,6 +235,9 @@ namespace DungeonGame.EditorScripts
             GameManager gm = managersObj.GetComponent<GameManager>();
             if (gm == null) gm = managersObj.AddComponent<GameManager>();
 
+            GameUIManager uiMgr = managersObj.GetComponent<GameUIManager>();
+            if (uiMgr == null) uiMgr = managersObj.AddComponent<GameUIManager>();
+
             InGameHUD hud = managersObj.GetComponent<InGameHUD>();
             if (hud != null) Object.DestroyImmediate(hud);
 
@@ -363,16 +366,13 @@ namespace DungeonGame.EditorScripts
 
         private static void CreateOrUpdateHudCanvas()
         {
-            // Xóa sạch Canvas cũ bị trùng lặp text, chỉ giữ lại duy nhất InGameHUD sắc nét
-            Canvas existingCanvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
-            if (existingCanvas != null)
+            // Xóa sạch tất cả Canvas cũ trong Scene để GameUIManager độc quyền hiển thị, không bị lặp text
+            foreach (var c in UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None))
             {
-                Object.DestroyImmediate(existingCanvas.gameObject);
-            }
-            GameObject oldCanvas = GameObject.Find("HUD_Canvas");
-            if (oldCanvas != null)
-            {
-                Object.DestroyImmediate(oldCanvas);
+                if (c != null && !EditorUtility.IsPersistent(c.gameObject))
+                {
+                    Object.DestroyImmediate(c.gameObject);
+                }
             }
         }
 
