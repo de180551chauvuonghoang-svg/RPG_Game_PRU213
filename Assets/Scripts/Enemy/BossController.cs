@@ -197,10 +197,11 @@ namespace DungeonGame.Enemy
                 spawner.ClearAllEnemies();
             }
 
-            // 3. Nếu là Màn 1: Triệu hồi Cổng Dịch Chuyển qua Màn 2
-            // Nếu là Màn 2: Mở modal toàn thắng Victory!
-            bool isStage2 = GameManager.Instance != null && GameManager.Instance.CurrentStage == 2;
-            if (!isStage2)
+            // 3. Nếu chưa phải Màn cuối (Màn 4): Triệu hồi Cổng Dịch Chuyển qua Màn kế tiếp
+            // Nếu là Màn 4: Mở modal toàn thắng Victory!
+            int curStage = GameManager.Instance != null ? GameManager.Instance.CurrentStage : 1;
+            bool isFinalStage = curStage >= 4;
+            if (!isFinalStage)
             {
                 if (portalPrefab != null)
                 {
@@ -220,13 +221,13 @@ namespace DungeonGame.Enemy
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.NotifyBossDefeated(transform.position);
-                if (isStage2)
+                if (isFinalStage)
                 {
                     GameManager.Instance.CompleteStage();
                 }
             }
 
-            Debug.Log($"<color=cyan><b>[BOSS DEFEATED] {bossName} đã bị tiêu diệt! {(isStage2 ? "TOÀN THẮNG MÀN 2!" : "Cổng Dịch Chuyển Màn 2 đã mở!")}</b></color>");
+            Debug.Log($"<color=cyan><b>[BOSS DEFEATED] {bossName} đã bị tiêu diệt! {(isFinalStage ? "TOÀN THẮNG TRÒ CHƠI RPG!" : $"Cổng Dịch Chuyển Màn {curStage + 1} đã mở!")}</b></color>");
 
             Destroy(gameObject, 0.2f);
         }

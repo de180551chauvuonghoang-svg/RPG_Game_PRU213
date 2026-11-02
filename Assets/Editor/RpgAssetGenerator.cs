@@ -72,6 +72,8 @@ namespace DungeonGame.EditorScripts
             SaveTextureAsPng(GenerateBossFireballTexture32(), "Assets/Sprites/Boss_Fireball.png");
             SaveTextureAsPng(GenerateStagePortal64(), "Assets/Sprites/Stage_Portal.png");
             SaveTextureAsPng(GenerateDungeonFloorLava64(), "Assets/Sprites/Dungeon_Floor_Lava.png");
+            SaveTextureAsPng(GenerateDungeonFloorIce64(), "Assets/Sprites/Dungeon_Floor_Ice.png");
+            SaveTextureAsPng(GenerateDungeonFloorThunder64(), "Assets/Sprites/Dungeon_Floor_Thunder.png");
 
             // 3. Tạo Sprite Vũ Khí Căn Bản & Đạn Phép Thuật
             SaveTextureAsPng(GenerateMagicStaff48(), "Assets/Sprites/Weapon_Staff.png");
@@ -95,6 +97,8 @@ namespace DungeonGame.EditorScripts
             ConfigureSpriteImport("Assets/Sprites/Boss_Fireball.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Stage_Portal.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Dungeon_Floor_Lava.png", 32);
+            ConfigureSpriteImport("Assets/Sprites/Dungeon_Floor_Ice.png", 32);
+            ConfigureSpriteImport("Assets/Sprites/Dungeon_Floor_Thunder.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Shop_Stall.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Dungeon_Floor.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Weapon_Staff.png", 32);
@@ -736,6 +740,81 @@ namespace DungeonGame.EditorScripts
             // Bong bóng dung nham ở ngã tư
             FillCircle(tex, 32, 32, 6, lavaHot);
             FillCircle(tex, 32, 32, 3, Color.white);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Gạch Sàn Băng Vực Màn 3 (Dungeon Floor Ice) 64x64:
+        /// Đá băng vĩnh cửu màu lam ngọc với các vết nứt tinh thể tuyết lấp lánh
+        /// </summary>
+        private static Texture2D GenerateDungeonFloorIce64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color iceDeep = new Color(0.08f, 0.16f, 0.28f);
+            Color icePlate1 = new Color(0.18f, 0.35f, 0.52f);
+            Color icePlate2 = new Color(0.25f, 0.45f, 0.65f);
+            Color iceCrack = new Color(0.45f, 0.85f, 1f);
+            Color iceGlint = new Color(0.85f, 0.95f, 1f);
+
+            FillRect(tex, 0, 0, 64, 64, iceDeep);
+
+            // 4 phiến đá băng
+            FillRect(tex, 2, 34, 28, 28, icePlate1);
+            FillRect(tex, 34, 34, 28, 28, icePlate2);
+            FillRect(tex, 2, 2, 28, 28, icePlate2);
+            FillRect(tex, 34, 2, 28, 28, icePlate1);
+
+            // Rãnh tinh thể băng sắc bén
+            FillRect(tex, 0, 30, 64, 4, iceCrack);
+            FillRect(tex, 0, 31, 64, 2, iceGlint);
+
+            FillRect(tex, 30, 0, 4, 64, iceCrack);
+            FillRect(tex, 31, 0, 2, 64, iceGlint);
+
+            // Tinh thể hoa tuyết ở trung tâm
+            FillCircle(tex, 32, 32, 6, iceGlint);
+            FillCircle(tex, 32, 32, 3, Color.white);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Gạch Sàn Đền Thờ Sấm Sét Màn 4 (Dungeon Floor Thunder) 64x64:
+        /// Đá thạch anh tím huyền bí với các đường rãnh lôi điện vàng kim rực sáng
+        /// </summary>
+        private static Texture2D GenerateDungeonFloorThunder64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color thunderDeep = new Color(0.14f, 0.08f, 0.24f);
+            Color thunderPlate1 = new Color(0.24f, 0.15f, 0.38f);
+            Color thunderPlate2 = new Color(0.20f, 0.12f, 0.32f);
+            Color thunderRune = new Color(1f, 0.75f, 0.15f);
+            Color thunderSpark = new Color(1f, 0.95f, 0.5f);
+
+            FillRect(tex, 0, 0, 64, 64, thunderDeep);
+
+            // 4 phiến đá đền thờ
+            FillRect(tex, 2, 34, 28, 28, thunderPlate1);
+            FillRect(tex, 34, 34, 28, 28, thunderPlate2);
+            FillRect(tex, 2, 2, 28, 28, thunderPlate2);
+            FillRect(tex, 34, 2, 28, 28, thunderPlate1);
+
+            // Rãnh lôi điện thần thánh
+            FillRect(tex, 0, 30, 64, 4, thunderRune);
+            FillRect(tex, 0, 31, 64, 2, thunderSpark);
+
+            FillRect(tex, 30, 0, 4, 64, thunderRune);
+            FillRect(tex, 31, 0, 2, 64, thunderSpark);
+
+            // Trục sấm sét titan ở giao điểm
+            FillCircle(tex, 32, 32, 7, thunderRune);
+            FillCircle(tex, 32, 32, 4, thunderSpark);
+            FillCircle(tex, 32, 32, 2, Color.white);
 
             tex.Apply();
             return tex;

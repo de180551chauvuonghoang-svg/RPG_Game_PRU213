@@ -110,7 +110,14 @@ namespace DungeonGame.Core
             isBossDefeated = false;
             activeBoss = null;
 
-            bossScoreThreshold = (currentStage == 1) ? 1000 : 2500;
+            switch (currentStage)
+            {
+                case 1: bossScoreThreshold = 1000; break;
+                case 2: bossScoreThreshold = 2500; break;
+                case 3: bossScoreThreshold = 4000; break;
+                case 4: bossScoreThreshold = 6000; break;
+                default: bossScoreThreshold = 1000; break;
+            }
 
             SetState(GameState.Playing);
 
@@ -121,11 +128,8 @@ namespace DungeonGame.Core
                 spawner.ResumeSpawning();
             }
 
-            // Nếu là Màn 2, đổi màu sàn hoặc cấu hình sang Dung Nham
-            if (currentStage == 2)
-            {
-                SetupStage2Environment();
-            }
+            // Cấu hình môi trường tương ứng cho từng màn chơi
+            SetupStageEnvironment(currentStage);
 
             OnScoreChanged?.Invoke(score);
             OnKillCountChanged?.Invoke(killCount);
@@ -133,16 +137,55 @@ namespace DungeonGame.Core
             Debug.Log($"<color=green><b>[GameManager] BẮT ĐẦU MÀN {currentStage}! Mốc triệu hồi Boss: {bossScoreThreshold} điểm.</b></color>");
         }
 
-        private void SetupStage2Environment()
+        private void SetupStageEnvironment(int stage)
         {
             var worldMgr = UnityEngine.Object.FindAnyObjectByType<InfiniteWorldManager>();
-            if (worldMgr != null)
+            if (worldMgr == null) return;
+
+            Sprite targetSprite = null;
+            Color bgColor = new Color(0.06f, 0.06f, 0.10f, 1f);
+
+            switch (stage)
             {
-                var lavaSprite = Resources.Load<Sprite>("Dungeon_Floor_Lava");
+                case 1:
+                    targetSprite = Resources.Load<Sprite>("Dungeon_Floor");
 #if UNITY_EDITOR
-                if (lavaSprite == null) lavaSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Lava.png");
+                    if (targetSprite == null) targetSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor.png");
 #endif
-                if (lavaSprite != null) worldMgr.SetFloorSprite(lavaSprite);
+                    bgColor = new Color(0.06f, 0.06f, 0.10f, 1f);
+                    break;
+
+                case 2:
+                    targetSprite = stage2LavaSprite;
+                    if (targetSprite == null) targetSprite = Resources.Load<Sprite>("Dungeon_Floor_Lava");
+#if UNITY_EDITOR
+                    if (targetSprite == null) targetSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Lava.png");
+#endif
+                    bgColor = new Color(0.16f, 0.04f, 0.04f, 1f);
+                    break;
+
+                case 3:
+                    targetSprite = Resources.Load<Sprite>("Dungeon_Floor_Ice");
+#if UNITY_EDITOR
+                    if (targetSprite == null) targetSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Ice.png");
+                    if (targetSprite == null) targetSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor.png");
+#endif
+                    bgColor = new Color(0.04f, 0.08f, 0.18f, 1f);
+                    break;
+
+                case 4:
+                    targetSprite = Resources.Load<Sprite>("Dungeon_Floor_Thunder");
+#if UNITY_EDITOR
+                    if (targetSprite == null) targetSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Thunder.png");
+                    if (targetSprite == null) targetSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Lava.png");
+#endif
+                    bgColor = new Color(0.12f, 0.04f, 0.20f, 1f);
+                    break;
+            }
+
+            if (targetSprite != null)
+            {
+                worldMgr.SwitchToStage(targetSprite, bgColor);
             }
         }
 
@@ -179,7 +222,7 @@ namespace DungeonGame.Core
             }
 
             GameObject bossObj = null;
-            GameObject prefabToSpawn = (currentStage == 2 && bossStage2Prefab != null) ? bossStage2Prefab : bossPrefab;
+            GameObject prefabToSpawn = (currentStage >= 2 && bossStage2Prefab != null) ? bossStage2Prefab : bossPrefab;
 
             if (prefabToSpawn != null)
             {
@@ -187,7 +230,7 @@ namespace DungeonGame.Core
             }
             else
             {
-                string targetPrefabName = (currentStage == 2) ? "Boss_InfernalIfrit" : "Boss_Goliath";
+                string targetPrefabName = (currentStage >= 2) ? "Boss_InfernalIfrit" : "Boss_Goliath";
                 var loaded = Resources.Load<GameObject>(targetPrefabName);
 #if UNITY_EDITOR
                 if (loaded == null) loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/{targetPrefabName}.prefab");
@@ -198,10 +241,35 @@ namespace DungeonGame.Core
             if (bossObj != null)
             {
                 activeBoss = bossObj.GetComponent<BossController>();
+
+                // Tùy biến chỉ số và màu sắc theo từng màn chơi
+                if (currentStage == 3)
+                {
+                    var hp = bossObj.GetComponent<HealthComponent>();
+                    if (hp != null) hp.SetMaxHealth(4000f, true);
+                    var sr = bossObj.GetComponentInChildren<SpriteRenderer>();
+                    if (sr != null) sr.color = new Color(0.4f, 0.95f, 1f, 1f); // Băng Tuyết Uy Dũng
+                }
+                else if (currentStage == 4)
+                {
+                    var hp = bossObj.GetComponent<HealthComponent>();
+                    if (hp != null) hp.SetMaxHealth(6000f, true);
+                    var sr = bossObj.GetComponentInChildren<SpriteRenderer>();
+                    if (sr != null) sr.color = new Color(1f, 0.85f, 0.25f, 1f); // Kim Sắc Thần Sấm
+                }
+
                 OnBossSpawned?.Invoke(activeBoss);
             }
 
-            Debug.Log($"<color=red><b>🚨 [BOSS SPAWNED] {(currentStage == 2 ? "Chúa Tể Dung Nham Ifrit (Màn 2)" : "Chúa Tể Goliath (Màn 1)")} đã xuất hiện tại {spawnPos}!</b></color>");
+            string bossTitle = currentStage switch
+            {
+                1 => "Chúa Tể Goliath (Màn 1)",
+                2 => "Chúa Tể Dung Nham Ifrit (Màn 2)",
+                3 => "Vu Yêu Băng Frost Lich (Màn 3)",
+                4 => "Thần Sấm Sét Zeus Titan (Màn 4)",
+                _ => $"Trùm Cuối Màn {currentStage}"
+            };
+            Debug.Log($"<color=red><b>🚨 [BOSS SPAWNED] {bossTitle} đã xuất hiện tại {spawnPos}!</b></color>");
         }
 
         public void RegisterActiveBoss(BossController boss)
@@ -237,32 +305,30 @@ namespace DungeonGame.Core
             SetState(GameState.Victory);
         }
 
-        public void TransitionToStage2()
+        public void AdvanceToStage(int nextStage)
         {
-            currentStage = 2;
-            bossScoreThreshold = score + 2500;
+            currentStage = nextStage;
+            switch (currentStage)
+            {
+                case 2: bossScoreThreshold = score + 2500; break;
+                case 3: bossScoreThreshold = score + 4000; break;
+                case 4: bossScoreThreshold = score + 6000; break;
+                default: bossScoreThreshold = score + 1000; break;
+            }
             isBossSpawned = false;
             isBossDefeated = false;
             activeBoss = null;
 
-            // 1. Lưu đã vượt qua Màn 1
-            PlayerPrefs.SetInt("HighestStageCleared", Mathf.Max(PlayerPrefs.GetInt("HighestStageCleared", 0), 1));
-            PlayerPrefs.Save();
-
-            // 2. Chuyển đổi toàn bộ Background sàn sang Dung Nham ngay lập tức
-            var worldMgr = UnityEngine.Object.FindAnyObjectByType<InfiniteWorldManager>();
-            if (worldMgr != null)
+            // 1. Lưu tiến độ màn chơi đã vượt qua
+            int highest = PlayerPrefs.GetInt("HighestStageCleared", 0);
+            if (currentStage - 1 > highest)
             {
-                Sprite lavaSprite = stage2LavaSprite;
-                if (lavaSprite == null) lavaSprite = Resources.Load<Sprite>("Dungeon_Floor_Lava");
-#if UNITY_EDITOR
-                if (lavaSprite == null) lavaSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Lava.png");
-#endif
-                if (lavaSprite != null)
-                {
-                    worldMgr.SwitchToStage(lavaSprite, new Color(0.16f, 0.04f, 0.04f, 1f));
-                }
+                PlayerPrefs.SetInt("HighestStageCleared", currentStage - 1);
+                PlayerPrefs.Save();
             }
+
+            // 2. Chuyển đổi môi trường sàn và màu nền
+            SetupStageEnvironment(currentStage);
 
             // 3. Rung lắc camera tạo hiệu ứng dịch chuyển không gian bùng nổ
             var camFollow = Camera.main != null ? Camera.main.GetComponent<DungeonGame.Cameras.CameraFollow2D>() : null;
@@ -282,10 +348,10 @@ namespace DungeonGame.Core
             // 5. Kích hoạt hiệu ứng Chuyển Màn & Banner trong UI
             if (DungeonGame.UI.GameUIManager.Instance != null)
             {
-                DungeonGame.UI.GameUIManager.Instance.TriggerStageTransitionEffect(2);
+                DungeonGame.UI.GameUIManager.Instance.TriggerStageTransitionEffect(currentStage);
             }
 
-            // 5. Spawner tiếp tục sinh quái Màn 2
+            // 6. Spawner tiếp tục sinh quái
             var spawner = UnityEngine.Object.FindAnyObjectByType<EnemySpawner>();
             if (spawner != null)
             {
@@ -294,19 +360,12 @@ namespace DungeonGame.Core
 
             SetState(GameState.Playing);
 
-            Debug.Log("<color=#FF6600><b>[GameManager] CHUYỂN QUA MÀN 2 THÀNH CÔNG! Background dung nham rực lửa đã kích hoạt!</b></color>");
+            Debug.Log($"<color=#FF6600><b>[GameManager] CHUYỂN QUA MÀN {currentStage} THÀNH CÔNG!</b></color>");
         }
 
-        public void AdvanceToStage(int nextStage)
+        public void TransitionToStage2()
         {
-            if (nextStage == 2)
-            {
-                TransitionToStage2();
-            }
-            else
-            {
-                StartGame(nextStage);
-            }
+            AdvanceToStage(2);
         }
 
         public void SetState(GameState newState)

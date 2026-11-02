@@ -33,6 +33,10 @@ namespace DungeonGame.UI
         private Texture2D bossBorderTex;
         private Texture2D stageCardBgTex;
         private Texture2D stageCardBorderTex;
+        private Texture2D stageBorderTex1;
+        private Texture2D stageBorderTex2;
+        private Texture2D stageBorderTex3;
+        private Texture2D stageBorderTex4;
         private Texture2D flashTex;
         private Texture2D fullScreenMenuBgTex;
         private Texture2D menuHeaderBgTex;
@@ -114,8 +118,11 @@ namespace DungeonGame.UI
             popupBgTex = MakeTex(new Color(0.08f, 0.08f, 0.12f, 0.98f));
             bossFillTex = MakeTex(new Color(0.85f, 0.1f, 0.2f, 1f));
             bossBorderTex = MakeTex(new Color(0.9f, 0.2f, 0.9f, 1f));
-            stageCardBgTex = MakeTex(new Color(0.12f, 0.12f, 0.18f, 0.95f));
             stageCardBorderTex = MakeTex(new Color(0.4f, 0.5f, 0.7f, 0.8f));
+            stageBorderTex1 = MakeTex(new Color(0.25f, 0.7f, 1f, 0.95f)); // Lam Thạch Màn 1
+            stageBorderTex2 = MakeTex(new Color(1f, 0.38f, 0.12f, 0.95f)); // Hỏa Diệm Màn 2
+            stageBorderTex3 = MakeTex(new Color(0.4f, 0.95f, 1f, 0.95f)); // Băng Giá Màn 3
+            stageBorderTex4 = MakeTex(new Color(1f, 0.82f, 0.2f, 0.95f)); // Lôi Thần Màn 4
             flashTex = MakeTex(new Color(1f, 1f, 1f, 1f));
             fullScreenMenuBgTex = MakeTex(new Color(0.06f, 0.07f, 0.11f, 1f));
             menuHeaderBgTex = MakeTex(new Color(0.09f, 0.10f, 0.16f, 1f));
@@ -301,7 +308,14 @@ namespace DungeonGame.UI
         public void TriggerStageTransitionEffect(int newStage)
         {
             transitionFlashAlpha = 1.0f;
-            stageTransitionBanner = $"🔥 BẠN ĐÃ TIẾN VÀO MÀN {newStage}: THÀNH TRÌ DUNG NHAM! 🔥";
+            string stageTitle = newStage switch
+            {
+                2 => "THÀNH TRÌ DUNG NHAM",
+                3 => "VỰC BĂNG VĨNH CỬU",
+                4 => "ĐỀN THỜ SẤM SÉT (MÀN CUỐI)",
+                _ => "HẦM NGỤC HẮC ÁM"
+            };
+            stageTransitionBanner = $"🔥 BẠN ĐÃ TIẾN VÀO MÀN {newStage}: {stageTitle}! 🔥";
             stageTransitionTimer = 5.5f;
         }
 
@@ -335,19 +349,37 @@ namespace DungeonGame.UI
 #if ENABLE_INPUT_SYSTEM
                 if (Keyboard.current != null)
                 {
-                    if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.digit1Key.wasPressedThisFrame)
+                    if (Keyboard.current.digit1Key.wasPressedThisFrame)
                         GameManager.Instance.StartGame(1);
                     else if (Keyboard.current.digit2Key.wasPressedThisFrame && GameManager.Instance.HighestStageCleared >= 1)
                         GameManager.Instance.StartGame(2);
+                    else if (Keyboard.current.digit3Key.wasPressedThisFrame && GameManager.Instance.HighestStageCleared >= 2)
+                        GameManager.Instance.StartGame(3);
+                    else if (Keyboard.current.digit4Key.wasPressedThisFrame && GameManager.Instance.HighestStageCleared >= 3)
+                        GameManager.Instance.StartGame(4);
+                    else if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame)
+                    {
+                        int targetStage = Mathf.Clamp(GameManager.Instance.HighestStageCleared + 1, 1, 4);
+                        GameManager.Instance.StartGame(targetStage);
+                    }
                 }
 #endif
 #if ENABLE_LEGACY_INPUT_MANAGER
                 try
                 {
-                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Alpha1))
+                    if (Input.GetKeyDown(KeyCode.Alpha1))
                         GameManager.Instance.StartGame(1);
                     else if (Input.GetKeyDown(KeyCode.Alpha2) && GameManager.Instance.HighestStageCleared >= 1)
                         GameManager.Instance.StartGame(2);
+                    else if (Input.GetKeyDown(KeyCode.Alpha3) && GameManager.Instance.HighestStageCleared >= 2)
+                        GameManager.Instance.StartGame(3);
+                    else if (Input.GetKeyDown(KeyCode.Alpha4) && GameManager.Instance.HighestStageCleared >= 3)
+                        GameManager.Instance.StartGame(4);
+                    else if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
+                    {
+                        int targetStage = Mathf.Clamp(GameManager.Instance.HighestStageCleared + 1, 1, 4);
+                        GameManager.Instance.StartGame(targetStage);
+                    }
                 }
                 catch {}
 #endif
@@ -450,89 +482,148 @@ namespace DungeonGame.UI
             GUI.DrawTexture(new Rect(0, 0, sw, sh), fullScreenMenuBgTex);
 
             // 2. Thanh Tiêu Đề (Header Bar) trên đỉnh màn hình
-            float headerH = 100f;
+            float headerH = 88f;
             GUI.DrawTexture(new Rect(0, 0, sw, headerH), menuHeaderBgTex);
             GUI.DrawTexture(new Rect(0, headerH - 3, sw, 3), goldLineTex); // Đường viền chỉ vàng kim óng ánh
 
-            GUI.Label(new Rect(0, 16f, sw, 40f), "⚔️ CHIẾN BINH RPG: HẦM NGỤC HUYỀN THOẠI ⚔️", menuHeaderStyle);
-            GUI.Label(new Rect(0, 60f, sw, 24f), "Đồ Án PRU213 - Sinh viên: Châu Vương Hoàng (MSSV: DE180551)", menuAuthorStyle);
+            GUI.Label(new Rect(0, 12f, sw, 38f), "⚔️ CHIẾN BINH RPG: HẦM NGỤC HUYỀN THOẠI ⚔️", menuHeaderStyle);
+            GUI.Label(new Rect(0, 52f, sw, 22f), "Đồ Án PRU213 - Sinh viên: Châu Vương Hoàng (MSSV: DE180551)", menuAuthorStyle);
 
-            // 3. Khung Nội Dung Chọn Màn Chơi (Stage Selection Cards)
-            float contentW = Mathf.Clamp(sw - 60f, 640f, 1040f);
-            float contentX = (sw - contentW) / 2f;
-            int cleared = GameManager.Instance.HighestStageCleared;
+            // 3. Khung Lưới Chọn Màn Chơi 2 Hàng x 2 Cột (2x2 Grid Layout) - Phủ đều màn hình
+            float gridMarginX = 36f;
+            float gridW = Mathf.Clamp(sw - (gridMarginX * 2f), 740f, 1220f);
+            float gridX = (sw - gridW) / 2f;
+            int cleared = GameManager.Instance != null ? GameManager.Instance.HighestStageCleared : 0;
 
-            float cardH = 152f;
-            float cardSpacing = 18f;
-            float startY = headerH + 24f;
+            float bottomH = 92f;
+            float availableH = sh - headerH - bottomH - 32f;
+            float rowSpacing = 14f;
+            float colSpacing = 16f;
+            float cardH = Mathf.Clamp((availableH - rowSpacing) / 2f, 140f, 195f);
+            float cardW = (gridW - colSpacing) / 2f;
 
-            // ===== THẺ MÀN 1 =====
-            float card1Y = startY;
-            DrawStageCard(
-                new Rect(contentX, card1Y, contentW, cardH),
-                "🏰 MÀN 1: HẦM NGỤC HẮC ÁM (Dark Dungeon)",
-                cleared >= 1 ? "🏆 TRẠNG THÁI: ĐÃ VƯỢT QUA ★★★" : "⚡ TRẠNG THÁI: ĐÃ MỞ KHÓA - SẴN SÀNG CHIẾN ĐẤU",
-                "• Mục tiêu: Tiêu diệt quái vật ➔ Đạt 1,000 Điểm ➔ Chúa Tể Goliath xuất hiện.\n• Cảnh báo Trùm: Mỗi đòn đánh của Boss Goliath trừ đúng 10 Máu!\n• Phần thưởng: Tiêu diệt Boss để ngưng quái và triệu hồi Cổng Dịch Chuyển qua Màn 2.",
+            float gridStartY = headerH + 16f;
+
+            // Tọa độ 2 Cột x 2 Hàng
+            float col0X = gridX;
+            float col1X = gridX + cardW + colSpacing;
+            float row0Y = gridStartY;
+            float row1Y = gridStartY + cardH + rowSpacing;
+
+            // ===== MÀN 1 (Hàng 0, Cột 0) =====
+            DrawGridStageCard(
+                new Rect(col0X, row0Y, cardW, cardH),
+                stageBorderTex1,
+                "🏰 MÀN 1: HẦM NGỤC HẮC ÁM",
+                cleared >= 1 ? "🏆 TRẠNG THÁI: ĐÃ VƯỢT QUA ★★★" : "⚡ SẴN SÀNG CHIẾN ĐẤU",
+                new Color(0.3f, 0.8f, 1f),
+                "• Mục tiêu: 1,000 Điểm ➔ Chúa Tể Goliath xuất hiện\n• Đặc điểm Trùm: Đòn đánh trừ đúng 10 Máu người chơi\n• Phần thưởng: Diệt Boss triệu hồi Cổng Dịch Chuyển qua Màn 2",
                 "▶ CHIẾN ĐẤU MÀN 1 (Phím 1)",
                 true,
                 () => GameManager.Instance.StartGame(1)
             );
 
-            // ===== THẺ MÀN 2 =====
-            float card2Y = card1Y + cardH + cardSpacing;
+            // ===== MÀN 2 (Hàng 0, Cột 1) =====
             bool isStage2Unlocked = cleared >= 1;
-
-            DrawStageCard(
-                new Rect(contentX, card2Y, contentW, cardH),
-                "🌋 MÀN 2: THÀNH TRÌ DUNG NHAM (Molten Citadel)",
-                isStage2Unlocked ? (cleared >= 2 ? "🏆 TRẠNG THÁI: ĐÃ VƯỢT QUA ★★★" : "⚡ TRẠNG THÁI: ĐÃ MỞ KHÓA - SẴN SÀNG CHIẾN ĐẤU") : "🔒 TRẠNG THÁI: ĐANG KHÓA (Cần tiêu diệt Boss Goliath ở Màn 1)",
-                "• Môi trường: Bản đồ nham thạch rực lửa vô tận với quái vật dung nham hung hãn.\n• Mục tiêu: Đạt 2,500 Điểm ➔ Triệu hồi Chúa Tể Dung Nham Ifrit (2,500 HP, Bắn cầu lửa từ xa).\n• Giữ nguyên toàn bộ vũ khí thần thoại đã nâng cấp từ Màn 1!",
-                isStage2Unlocked ? "▶ CHIẾN ĐẤU MÀN 2 (Phím 2)" : "🔒 CHƯA MỞ KHÓA",
+            DrawGridStageCard(
+                new Rect(col1X, row0Y, cardW, cardH),
+                stageBorderTex2,
+                "🌋 MÀN 2: THÀNH TRÌ DUNG NHAM",
+                isStage2Unlocked ? (cleared >= 2 ? "🏆 TRẠNG THÁI: ĐÃ VƯỢT QUA ★★★" : "⚡ SẴN SÀNG CHIẾN ĐẤU") : "🔒 ĐANG KHÓA (Cần qua Màn 1)",
+                new Color(1f, 0.45f, 0.2f),
+                "• Mục tiêu: 2,500 Điểm ➔ Chúa Tể Dung Nham Ifrit (2,500 HP)\n• Kỹ năng Trùm: Bắn Cầu Lửa từ xa & Cuồng Nộ đạn chùm 3 hướng\n• Địa hình: Sàn nham thạch vô tận rực lửa và quỷ dung nham",
+                isStage2Unlocked ? "▶ CHIẾN ĐẤU MÀN 2 (Phím 2)" : "🔒 CẦN TIÊU DIỆT BOSS MÀN 1",
                 isStage2Unlocked,
                 () => { if (isStage2Unlocked) GameManager.Instance.StartGame(2); }
             );
 
+            // ===== MÀN 3 (Hàng 1, Cột 0) =====
+            bool isStage3Unlocked = cleared >= 2;
+            DrawGridStageCard(
+                new Rect(col0X, row1Y, cardW, cardH),
+                stageBorderTex3,
+                "❄️ MÀN 3: VỰC BĂNG VĨNH CỬU",
+                isStage3Unlocked ? (cleared >= 3 ? "🏆 TRẠNG THÁI: ĐÃ VƯỢT QUA ★★★" : "⚡ SẴN SÀNG CHIẾN ĐẤU") : "🔒 ĐANG KHÓA (Cần qua Màn 2)",
+                new Color(0.4f, 0.95f, 1f),
+                "• Mục tiêu: 4,000 Điểm ➔ Vu Yêu Băng Frost Lich (4,000 HP)\n• Kỹ năng Trùm: Phép Băng Giá diện rộng & Băng tiễn dồn dập\n• Địa hình: Hầm ngục băng giá cổ đại trơn trượt",
+                isStage3Unlocked ? "▶ CHIẾN ĐẤU MÀN 3 (Phím 3)" : "🔒 CẦN TIÊU DIỆT BOSS MÀN 2",
+                isStage3Unlocked,
+                () => { if (isStage3Unlocked) GameManager.Instance.StartGame(3); }
+            );
+
+            // ===== MÀN 4 (Hàng 1, Cột 1) =====
+            bool isStage4Unlocked = cleared >= 3;
+            DrawGridStageCard(
+                new Rect(col1X, row1Y, cardW, cardH),
+                stageBorderTex4,
+                "⚡ MÀN 4: ĐỀN THỜ SẤM SÉT (MÀN CUỐI)",
+                isStage4Unlocked ? (cleared >= 4 ? "👑 ĐÃ TOÀN THẮNG TRÒ CHƠI ★★★" : "⚡ SẴN SÀNG CHIẾN ĐẤU") : "🔒 ĐANG KHÓA (Cần qua Màn 3)",
+                new Color(1f, 0.85f, 0.25f),
+                "• Mục tiêu: 6,000 Điểm ➔ Thần Sấm Sét Zeus Titan (6,000 HP)\n• Kỹ năng Trùm: Lôi điện hủy diệt toàn màn hình\n• Vinh quang: Toàn thắng RPG - Phá đảo Hầm Ngục Huyền Thoại!",
+                isStage4Unlocked ? "▶ QUYẾT ĐẤU MÀN 4 (Phím 4)" : "🔒 CẦN TIÊU DIỆT BOSS MÀN 3",
+                isStage4Unlocked,
+                () => { if (isStage4Unlocked) GameManager.Instance.StartGame(4); }
+            );
+
             // 4. Thanh Đáy & Nút Bắt Đầu Lớn (Footer Action Bar)
-            float playBtnW = Mathf.Min(contentW, 580f);
-            float playBtnH = 56f;
+            int targetStage = Mathf.Clamp(cleared + 1, 1, 4);
+            float playBtnW = Mathf.Clamp(gridW * 0.65f, 480f, 680f);
+            float playBtnH = 50f;
             float playBtnX = (sw - playBtnW) / 2f;
-            float playBtnY = card2Y + cardH + 24f;
+            float playBtnY = row1Y + cardH + 16f;
 
-            // Đảm bảo nút không bị chìm quá sâu nếu màn hình thấp
-            if (playBtnY + playBtnH + 35f > sh)
+            if (playBtnY + playBtnH + 32f > sh)
             {
-                playBtnY = sh - playBtnH - 35f;
+                playBtnY = sh - playBtnH - 32f;
             }
 
-            if (GUI.Button(new Rect(playBtnX, playBtnY, playBtnW, playBtnH), "⚔️ BẮT ĐẦU CHIẾN ĐẤU (SPACE / ENTER) ⚔️", restartButtonStyle))
+            string playBtnText = $"⚔️ BẮT ĐẦU CHIẾN ĐẤU MÀN {targetStage} (SPACE / ENTER) ⚔️";
+            if (GUI.Button(new Rect(playBtnX, playBtnY, playBtnW, playBtnH), playBtnText, restartButtonStyle))
             {
-                GameManager.Instance.StartGame(1);
+                GameManager.Instance.StartGame(targetStage);
             }
 
-            // Dòng hướng dẫn phím tắt ở sát mép đáy
+            // Hướng dẫn phím tắt ở sát mép đáy
             float guideY = playBtnY + playBtnH + 6f;
-            GUI.Label(new Rect(0, guideY, sw, 24f), "🎮 Phím tắt: [W, A, S, D] Di chuyển  •  [Chuột Trái] Bắn phép  •  [Phím 1/2] Chọn màn  •  [Space] Bắt đầu  •  [R] Chơi lại", menuGuideStyle);
+            GUI.Label(new Rect(0, guideY, sw, 22f), "🎮 Phím tắt: [1, 2, 3, 4] Chọn nhanh màn chơi  •  [SPACE / ENTER] Bắt đầu màn cao nhất  •  [W, A, S, D] Di chuyển  •  [Chuột Trái] Tấn công  •  [R] Chơi lại", menuGuideStyle);
         }
 
-        private void DrawStageCard(Rect rect, string title, string status, string desc, string btnText, bool isEnabled, Action onClick)
+        private void DrawGridStageCard(Rect rect, Texture2D borderTex, string title, string status, Color titleColor, string desc, string btnText, bool isEnabled, Action onClick)
         {
-            GUI.DrawTexture(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), stageCardBorderTex);
-            GUI.DrawTexture(rect, stageCardBgTex);
+            // Viền phát sáng theo màu chủ đề của từng màn chơi
+            GUI.DrawTexture(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), borderTex != null ? borderTex : stageCardBorderTex);
+            // Nền thẻ
+            GUI.DrawTexture(rect, isEnabled ? stageCardBgTex : popupBgTex);
 
-            float infoX = rect.x + 22f;
-            float btnW = 270f;
-            float btnH = 62f;
-            float infoW = rect.width - btnW - 45f;
+            float padX = 16f;
+            float contentW = rect.width - (padX * 2f);
 
-            GUI.Label(new Rect(infoX, rect.y + 12f, infoW, 28f), title, stageTitleStyle);
-            GUI.Label(new Rect(infoX, rect.y + 42f, infoW, 24f), status, stageStatusStyle);
-            GUI.Label(new Rect(infoX, rect.y + 70f, infoW, 72f), desc, stageDescStyle);
+            // 1. Tiêu đề Màn chơi
+            GUIStyle curTitleStyle = new GUIStyle(stageTitleStyle);
+            curTitleStyle.fontSize = Mathf.Clamp(Mathf.RoundToInt(rect.height * 0.11f), 15, 18);
+            curTitleStyle.normal.textColor = titleColor;
+            GUI.Label(new Rect(rect.x + padX, rect.y + 10f, contentW, 24f), title, curTitleStyle);
 
-            float btnX = rect.x + rect.width - btnW - 18f;
-            float btnY = rect.y + (rect.height - btnH) / 2f;
+            // 2. Trạng thái (Đã vượt qua / Sẵn sàng / Đang khóa)
+            GUIStyle curStatusStyle = new GUIStyle(stageStatusStyle);
+            curStatusStyle.fontSize = Mathf.Clamp(Mathf.RoundToInt(rect.height * 0.085f), 12, 14);
+            curStatusStyle.normal.textColor = isEnabled ? (status.Contains("ĐÃ VƯỢT") || status.Contains("TOÀN THẮNG") ? new Color(1f, 0.85f, 0.2f) : new Color(0.4f, 1f, 0.5f)) : new Color(0.9f, 0.4f, 0.4f);
+            GUI.Label(new Rect(rect.x + padX, rect.y + 35f, contentW, 20f), status, curStatusStyle);
+
+            // 3. Mô tả chi tiết
+            GUIStyle curDescStyle = new GUIStyle(stageDescStyle);
+            curDescStyle.fontSize = Mathf.Clamp(Mathf.RoundToInt(rect.height * 0.075f), 11, 13);
+            curDescStyle.wordWrap = true;
+            float descH = rect.height - 110f;
+            GUI.Label(new Rect(rect.x + padX, rect.y + 57f, contentW, Mathf.Max(descH, 40f)), desc, curDescStyle);
+
+            // 4. Nút hành động trực tiếp ở đáy thẻ
+            float btnH = Mathf.Clamp(rect.height * 0.22f, 34f, 44f);
+            float btnY = rect.y + rect.height - btnH - 10f;
+            Rect btnRect = new Rect(rect.x + padX, btnY, contentW, btnH);
 
             GUI.enabled = isEnabled;
-            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), btnText, menuActionBtnStyle))
+            if (GUI.Button(btnRect, btnText, menuActionBtnStyle))
             {
                 onClick?.Invoke();
             }

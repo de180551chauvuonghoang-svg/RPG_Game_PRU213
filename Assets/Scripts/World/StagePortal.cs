@@ -37,11 +37,12 @@ namespace DungeonGame.World
             if (isPlayer)
             {
                 hasTriggered = true;
-                Debug.Log("<color=cyan><b>[PORTAL] Người chơi đã bước vào Cổng Dịch Chuyển! Khởi động chuyển dịch không gian sang Màn 2...</b></color>");
+                int nextStage = GameManager.Instance != null ? GameManager.Instance.CurrentStage + 1 : 2;
+                Debug.Log($"<color=cyan><b>[PORTAL] Người chơi đã bước vào Cổng Dịch Chuyển! Khởi động chuyển dịch không gian sang Màn {nextStage}...</b></color>");
                 
                 if (GameManager.Instance != null)
                 {
-                    GameManager.Instance.TransitionToStage2();
+                    GameManager.Instance.AdvanceToStage(nextStage);
                 }
                 
                 Destroy(gameObject, 0.2f);
