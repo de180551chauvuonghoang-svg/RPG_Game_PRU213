@@ -656,6 +656,8 @@ namespace DungeonGame.UI
             {
                 RestartGame();
             }
+        }
+
         // ================= VẼ HIỆU ỨNG CHUYỂN MÀN & BANNER MÀN 2 =================
         private void DrawStageTransitionEffect()
         {
