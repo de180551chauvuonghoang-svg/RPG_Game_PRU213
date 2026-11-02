@@ -129,6 +129,9 @@ namespace DungeonGame.Enemy
             else
             {
                 var loaded = Resources.Load<GameObject>("Stage_Portal");
+#if UNITY_EDITOR
+                if (loaded == null) loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Stage_Portal.prefab");
+#endif
                 if (loaded != null) Instantiate(loaded, transform.position, Quaternion.identity);
             }
 

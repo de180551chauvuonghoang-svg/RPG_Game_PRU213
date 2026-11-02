@@ -126,6 +126,7 @@ namespace DungeonGame.EditorScripts
             Sprite staffSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Weapon_Staff.png");
             Sprite bulletSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Magic_Bullet.png");
             Sprite floorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor.png");
+            Sprite lavaFloorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Lava.png");
 
             Sprite multiSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Weapon_Staff_Multi.png");
             Sprite titanSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Weapon_Staff_Titan.png");
@@ -358,6 +359,8 @@ namespace DungeonGame.EditorScripts
             SerializedObject gmSo = new SerializedObject(gm);
             gmSo.FindProperty("bossPrefab").objectReferenceValue = bossPrefab;
             gmSo.FindProperty("portalPrefab").objectReferenceValue = portalPrefab;
+            gmSo.FindProperty("stage2LavaSprite").objectReferenceValue = lavaFloorSprite;
+            gmSo.FindProperty("bossScoreThreshold").intValue = 1000;
             gmSo.ApplyModifiedProperties();
 
             GameUIManager uiMgr = managersObj.GetComponent<GameUIManager>();

@@ -132,9 +132,51 @@ namespace DungeonGame.World
             return chunkObj;
         }
 
+        public static InfiniteWorldManager Instance { get; private set; }
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+        }
+
         public void SetFloorSprite(Sprite sprite)
         {
             floorSprite = sprite;
+        }
+
+        /// <summary>
+        /// Đổi toàn bộ Background và Camera sang Màn chơi mới ngay lập tức
+        /// </summary>
+        public void SwitchToStage(Sprite newFloorSprite, Color cameraBgColor)
+        {
+            floorSprite = newFloorSprite;
+
+            // Đổi ngay lập tức toàn bộ gạch trên tất cả các Chunk đang hiển thị
+            foreach (var kvp in activeChunks)
+            {
+                if (kvp.Value != null)
+                {
+                    var srs = kvp.Value.GetComponentsInChildren<SpriteRenderer>();
+                    foreach (var sr in srs)
+                    {
+                        if (sr != null)
+                        {
+                            sr.sprite = newFloorSprite;
+                        }
+                    }
+                }
+            }
+
+            // Đổi màu nền Camera sang tone dung nham rực lửa
+            if (Camera.main != null)
+            {
+                Camera.main.backgroundColor = cameraBgColor;
+            }
         }
     }
 }

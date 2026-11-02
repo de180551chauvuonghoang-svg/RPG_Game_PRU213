@@ -28,6 +28,14 @@ namespace DungeonGame.Cameras
 
         private Vector3 currentVelocity = Vector3.zero;
         private Camera cam;
+        private float shakeTimer = 0f;
+        private float shakeMagnitude = 0.35f;
+
+        public void TriggerShake(float duration = 0.6f, float magnitude = 0.4f)
+        {
+            shakeTimer = duration;
+            shakeMagnitude = magnitude;
+        }
 
         private void Awake()
         {
@@ -63,7 +71,17 @@ namespace DungeonGame.Cameras
                     targetPosition.y = Mathf.Clamp(targetPosition.y, minBounds.y, maxBounds.y);
                 }
 
-                transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
+                Vector3 newPos = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
+
+                if (shakeTimer > 0f)
+                {
+                    shakeTimer -= Time.deltaTime;
+                    Vector2 shakeOffset = UnityEngine.Random.insideUnitCircle * shakeMagnitude;
+                    newPos.x += shakeOffset.x;
+                    newPos.y += shakeOffset.y;
+                }
+
+                transform.position = newPos;
             }
             catch (System.Exception)
             {

@@ -34,9 +34,10 @@ namespace DungeonGame.Core
         [SerializeField] private int currentStage = 1;
         [SerializeField] private int bossScoreThreshold = 1000;
 
-        [Header("Prefab Boss & Cổng Dịch Chuyển")]
+        [Header("Prefab Boss & Cổng Dịch Chuyển & Sàn Màn 2")]
         [SerializeField] private GameObject bossPrefab;
         [SerializeField] private GameObject portalPrefab;
+        [SerializeField] private Sprite stage2LavaSprite;
 
         [Header("Thống kê trận đánh")]
         [SerializeField] private int score = 0;
@@ -229,9 +230,76 @@ namespace DungeonGame.Core
             SetState(GameState.Victory);
         }
 
+        public void TransitionToStage2()
+        {
+            currentStage = 2;
+            bossScoreThreshold = 2500;
+            isBossSpawned = false;
+            isBossDefeated = false;
+            activeBoss = null;
+
+            // 1. Lưu đã vượt qua Màn 1
+            PlayerPrefs.SetInt("HighestStageCleared", Mathf.Max(PlayerPrefs.GetInt("HighestStageCleared", 0), 1));
+            PlayerPrefs.Save();
+
+            // 2. Chuyển đổi toàn bộ Background sàn sang Dung Nham ngay lập tức
+            var worldMgr = UnityEngine.Object.FindAnyObjectByType<InfiniteWorldManager>();
+            if (worldMgr != null)
+            {
+                Sprite lavaSprite = stage2LavaSprite;
+                if (lavaSprite == null) lavaSprite = Resources.Load<Sprite>("Dungeon_Floor_Lava");
+#if UNITY_EDITOR
+                if (lavaSprite == null) lavaSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor_Lava.png");
+#endif
+                if (lavaSprite != null)
+                {
+                    worldMgr.SwitchToStage(lavaSprite, new Color(0.16f, 0.04f, 0.04f, 1f));
+                }
+            }
+
+            // 3. Rung lắc camera tạo hiệu ứng dịch chuyển không gian bùng nổ
+            var camFollow = Camera.main != null ? Camera.main.GetComponent<DungeonGame.Cameras.CameraFollow2D>() : null;
+            if (camFollow != null)
+            {
+                camFollow.TriggerShake(0.8f, 0.5f);
+            }
+
+            // 4. Hồi 100% máu cho Hiệp sĩ
+            var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
+            if (player != null)
+            {
+                var hp = player.GetComponent<HealthComponent>();
+                if (hp != null) hp.Heal(100f);
+            }
+
+            // 5. Kích hoạt hiệu ứng Chuyển Màn & Banner trong UI
+            if (DungeonGame.UI.GameUIManager.Instance != null)
+            {
+                DungeonGame.UI.GameUIManager.Instance.TriggerStageTransitionEffect(2);
+            }
+
+            // 5. Spawner tiếp tục sinh quái Màn 2
+            var spawner = UnityEngine.Object.FindAnyObjectByType<EnemySpawner>();
+            if (spawner != null)
+            {
+                spawner.ResumeSpawning();
+            }
+
+            SetState(GameState.Playing);
+
+            Debug.Log("<color=#FF6600><b>[GameManager] CHUYỂN QUA MÀN 2 THÀNH CÔNG! Background dung nham rực lửa đã kích hoạt!</b></color>");
+        }
+
         public void AdvanceToStage(int nextStage)
         {
-            StartGame(nextStage);
+            if (nextStage == 2)
+            {
+                TransitionToStage2();
+            }
+            else
+            {
+                StartGame(nextStage);
+            }
         }
 
         public void SetState(GameState newState)

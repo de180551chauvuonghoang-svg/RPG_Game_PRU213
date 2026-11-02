@@ -33,6 +33,14 @@ namespace DungeonGame.UI
         private Texture2D bossBorderTex;
         private Texture2D stageCardBgTex;
         private Texture2D stageCardBorderTex;
+        private Texture2D flashTex;
+
+        // Transition Effect Variables
+        private float transitionFlashAlpha = 0f;
+        private string stageTransitionBanner = "";
+        private float stageTransitionTimer = 0f;
+        private GUIStyle stageBannerStyle;
+        private GUIStyle stageBannerSubStyle;
 
         // GUIStyles
         private GUIStyle titleStyle;
@@ -104,6 +112,7 @@ namespace DungeonGame.UI
             bossBorderTex = MakeTex(new Color(0.9f, 0.2f, 0.9f, 1f));
             stageCardBgTex = MakeTex(new Color(0.12f, 0.12f, 0.18f, 0.95f));
             stageCardBorderTex = MakeTex(new Color(0.4f, 0.5f, 0.7f, 0.8f));
+            flashTex = MakeTex(new Color(1f, 1f, 1f, 1f));
         }
 
         private Texture2D MakeTex(Color c)
@@ -253,6 +262,31 @@ namespace DungeonGame.UI
                 wordWrap = false
             };
             bossNoticeStyle.normal.textColor = new Color(1f, 0.35f, 0.35f);
+
+            stageBannerStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 22,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
+            };
+            stageBannerStyle.normal.textColor = new Color(1f, 0.75f, 0.2f);
+
+            stageBannerSubStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
+            };
+            stageBannerSubStyle.normal.textColor = new Color(1f, 0.35f, 0.35f);
+        }
+
+        public void TriggerStageTransitionEffect(int newStage)
+        {
+            transitionFlashAlpha = 1.0f;
+            stageTransitionBanner = $"🔥 BẠN ĐÃ TIẾN VÀO MÀN {newStage}: THÀNH TRÌ DUNG NHAM! 🔥";
+            stageTransitionTimer = 5.5f;
         }
 
         private void Update()
@@ -386,6 +420,9 @@ namespace DungeonGame.UI
             {
                 DrawGameOverModal();
             }
+
+            // ================= 7. HIỆU ỨNG CHUYỂN MÀN & BANNER TIẾN VÀO MÀN 2 =================
+            DrawStageTransitionEffect();
         }
 
         // ================= VẼ MÀN HÌNH CHÍNH & CHỌN MÀN =================
@@ -501,8 +538,14 @@ namespace DungeonGame.UI
             int stage = GameManager.Instance.CurrentStage;
 
             float rightEdge = Screen.width - 25f;
-            GUI.Label(new Rect(rightEdge - 340f, 15f, 340f, 32f), $"★ MÀN {stage}  |  ĐIỂM: {score:N0}", scoreStyle);
-            GUI.Label(new Rect(rightEdge - 340f, 48f, 340f, 28f), $"☠ TIÊU DIỆT: {kills} con", killsStyle);
+            string stageTitleText = stage == 2 ? "🌋 MÀN 2: DUNG NHAM" : "🏰 MÀN 1: HẦM NGỤC";
+            GUI.Label(new Rect(rightEdge - 420f, 15f, 420f, 32f), $"{stageTitleText}  |  ★ {score:N0} Điểm", scoreStyle);
+            GUI.Label(new Rect(rightEdge - 420f, 48f, 420f, 28f), $"☠ TIÊU DIỆT: {kills} con", killsStyle);
+
+            if (stage == 2)
+            {
+                GUI.Label(new Rect(bx, by + bh + 4f, 360f, 22f), "🔥 [MÀN 2: THÀNH TRÌ DUNG NHAM]", stageBannerSubStyle);
+            }
 
             // 3. Đồng hồ thời gian
             int min = Mathf.FloorToInt(time / 60f);
@@ -612,6 +655,36 @@ namespace DungeonGame.UI
             if (GUI.Button(new Rect(px + 60f, py + 225f, pw - 120f, 60f), "🔄 CHƠI LẠI (BẤM PHÍM 'R')", restartButtonStyle))
             {
                 RestartGame();
+            }
+        // ================= VẼ HIỆU ỨNG CHUYỂN MÀN & BANNER MÀN 2 =================
+        private void DrawStageTransitionEffect()
+        {
+            // 1. Banner chào đón màn chơi mới khi vừa bước qua cổng
+            if (stageTransitionTimer > 0f)
+            {
+                stageTransitionTimer -= Time.unscaledDeltaTime;
+
+                float bw = Mathf.Min(Screen.width - 40f, 860f);
+                float bh = 95f;
+                float bx = (Screen.width - bw) / 2f;
+                float by = 65f;
+
+                // Nền dung nham với viền vàng cam rực cháy
+                GUI.DrawTexture(new Rect(bx - 3, by - 3, bw + 6, bh + 6), borderTex);
+                GUI.DrawTexture(new Rect(bx, by, bw, bh), popupBgTex);
+
+                GUI.Label(new Rect(bx, by + 12f, bw, 34f), stageTransitionBanner, stageBannerStyle);
+                GUI.Label(new Rect(bx, by + 50f, bw, 26f), "⚡ Sàn hầm ngục đã biến thành nham thạch nóng chảy! Quái vật trở nên cuồng bạo hơn!", stageBannerSubStyle);
+            }
+
+            // 2. Chớp sáng chuyển màn (Flash Transition) khi bước vào cổng dịch chuyển
+            if (transitionFlashAlpha > 0.01f)
+            {
+                transitionFlashAlpha = Mathf.MoveTowards(transitionFlashAlpha, 0f, Time.unscaledDeltaTime * 1.4f);
+                Color oldColor = GUI.color;
+                GUI.color = new Color(1f, 0.95f, 0.85f, transitionFlashAlpha);
+                GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), flashTex);
+                GUI.color = oldColor;
             }
         }
 

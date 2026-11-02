@@ -30,13 +30,21 @@ namespace DungeonGame.World
         {
             if (hasTriggered) return;
 
-            if (collision.TryGetComponent<PlayerController>(out var player))
+            bool isPlayer = collision.CompareTag("Player") ||
+                            collision.GetComponent<PlayerController>() != null ||
+                            collision.GetComponentInParent<PlayerController>() != null;
+
+            if (isPlayer)
             {
                 hasTriggered = true;
+                Debug.Log("<color=cyan><b>[PORTAL] Người chơi đã bước vào Cổng Dịch Chuyển! Khởi động chuyển dịch không gian sang Màn 2...</b></color>");
+                
                 if (GameManager.Instance != null)
                 {
-                    GameManager.Instance.CompleteStage();
+                    GameManager.Instance.TransitionToStage2();
                 }
+                
+                Destroy(gameObject, 0.2f);
             }
         }
     }
