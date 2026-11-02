@@ -11,7 +11,7 @@ namespace DungeonGame.World
     /// <summary>
     /// Gian Hàng Ma Thuật (Mystic Upgrade Shrine) xuất hiện trên Map khi đạt các mốc điểm.
     /// - Khi mở shop: TỰ ĐỘNG PAUSE GAME (Time.timeScale = 0), quái dừng lại hoàn toàn, không mất máu.
-    /// - Giao diện Card Roguelike cỡ lớn, rộng rãi, hình ảnh icon vũ khí sắc nét, chỉ số so sánh rõ ràng không bị đè chữ.
+    /// - Giao diện Card Roguelike cỡ lớn, rộng rãi, tuyệt đối KHÔNG BỊ ĐÈ CHỮ / RỚT DÒNG (wordWrap = false).
     /// - Hỗ trợ phím tắt 1, 2, 3, 4 hoặc click chuột để chọn nâng cấp.
     /// - Đổi trực tiếp ngoại hình vũ khí trên tay nhân vật khi người chơi bấm chọn.
     /// </summary>
@@ -46,7 +46,6 @@ namespace DungeonGame.World
         private GUIStyle shopTitleStyle;
         private GUIStyle shopPauseNoticeStyle;
         private GUIStyle cardTitleStyle;
-        private GUIStyle cardBadgeStyle;
         private GUIStyle cardStatStyle;
         private GUIStyle cardDescStyle;
         private GUIStyle upgradeBtnStyle;
@@ -133,51 +132,51 @@ namespace DungeonGame.World
 
             shopTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 25,
+                fontSize = 24,
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
             };
             shopTitleStyle.normal.textColor = new Color(1f, 0.85f, 0.25f);
 
             shopPauseNoticeStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 15,
+                fontSize = 14,
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
             };
             shopPauseNoticeStyle.normal.textColor = new Color(0.35f, 1f, 0.65f);
 
             cardTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 20,
+                fontSize = 18,
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = false,
+                clipping = TextClipping.Clip
             };
-            cardTitleStyle.normal.textColor = new Color(1f, 0.9f, 0.35f);
-
-            cardBadgeStyle = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 14,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft
-            };
-            cardBadgeStyle.normal.textColor = new Color(0.2f, 0.95f, 1f);
+            cardTitleStyle.normal.textColor = new Color(1f, 0.88f, 0.25f);
 
             cardStatStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 15,
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = false,
+                clipping = TextClipping.Clip
             };
-            cardStatStyle.normal.textColor = Color.white;
+            cardStatStyle.normal.textColor = new Color(0.5f, 1f, 0.5f);
 
             cardDescStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 13,
                 fontStyle = FontStyle.Italic,
-                alignment = TextAnchor.MiddleLeft
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = false,
+                clipping = TextClipping.Clip
             };
-            cardDescStyle.normal.textColor = new Color(0.82f, 0.88f, 0.98f);
+            cardDescStyle.normal.textColor = new Color(0.80f, 0.86f, 0.95f);
 
             promptStyle = new GUIStyle(GUI.skin.box)
             {
@@ -189,7 +188,7 @@ namespace DungeonGame.World
 
             upgradeBtnStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 17,
+                fontSize = 16,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -294,9 +293,9 @@ namespace DungeonGame.World
             // 2. BẢNG NÂNG CẤP VŨ KHÍ RỘNG RÃI, ĐẸP MẮT
             if (isShopOpen && !isUsed)
             {
-                // Kích thước Popup to rộng, vừa vặn mọi màn hình
-                float sw = Mathf.Min(Screen.width * 0.94f, 1040f);
-                float sh = Mathf.Min(Screen.height * 0.92f, 650f);
+                // Tự động căn chỉnh kích thước Popup cân đối với mọi độ phân giải màn hình
+                float sw = Mathf.Min(Screen.width - 40f, 1040f);
+                float sh = Mathf.Min(Screen.height - 40f, 620f);
                 float sx = (Screen.width - sw) / 2f;
                 float sy = (Screen.height - sh) / 2f;
 
@@ -305,14 +304,14 @@ namespace DungeonGame.World
                 GUI.DrawTexture(new Rect(sx, sy, sw, sh), shopBgTex);
 
                 // Tiêu đề & Thông báo tạm dừng
-                GUI.Label(new Rect(sx, sy + 12f, sw, 34f), "🏪 GIAN HÀNG MA THUẬT - CHỌN 1 VŨ KHÍ NÂNG CẤP", shopTitleStyle);
-                GUI.Label(new Rect(sx, sy + 44f, sw, 24f), "⏸️ [TRÒ CHƠI ĐÃ TẠM DỪNG] Quái vật bị đóng băng 100% - Bạn an toàn tuyệt đối!", shopPauseNoticeStyle);
+                GUI.Label(new Rect(sx, sy + 10f, sw, 32f), "🏪 GIAN HÀNG MA THUẬT - CHỌN 1 VŨ KHÍ NÂNG CẤP", shopTitleStyle);
+                GUI.Label(new Rect(sx, sy + 40f, sw, 22f), "⏸️ [TRÒ CHƠI ĐÃ TẠM DỪNG] Quái vật bị đóng băng 100% - Bạn an toàn tuyệt đối!", shopPauseNoticeStyle);
 
-                float cardX = sx + 25f;
-                float cardW = sw - 50f;
-                float cardH = 118f;
-                float startY = sy + 76f;
-                float gapY = 130f;
+                float cardX = sx + 20f;
+                float cardW = sw - 40f;
+                float cardH = 112f;
+                float startY = sy + 68f;
+                float gapY = 124f;
 
                 // Dữ liệu chỉ số hiện tại
                 int curShots = playerCombat != null ? playerCombat.MultiShotCount : 1;
@@ -331,10 +330,9 @@ namespace DungeonGame.World
                 DrawUpgradeCard(
                     new Rect(cardX, startY, cardW, cardH),
                     multiShotSprite,
-                    "🏹 HỎA LONG TAM XẠ",
-                    "[Ngoại hình: Trượng 3 Nhánh Phượng Hoàng]",
-                    $"Số tia đạn: [{curShots} tia] ➔ [{nextShots} tia cánh quạt] | Sát thương tổng: {curDmg:F0} x {nextShots} = {curDmg * nextShots:F0} DMG",
-                    "Phủ hỏa lực hình cánh quạt diện rộng, càn quét toàn bộ đàn quái vật bao vây xung quanh!",
+                    "🏹 HỎA LONG TAM XẠ  •  [Trượng 3 Nhánh Thần Hỏa]",
+                    $"⚡ Số tia đạn: [{curShots} tia] ➔ [{nextShots} tia cánh quạt]  |  Tổng sát thương: {curDmg:F0} x {nextShots} = {curDmg * nextShots:F0} DMG",
+                    "Phủ hỏa lực cánh quạt diện rộng, càn quét toàn bộ đàn quái vật bao vây xung quanh!",
                     "CHỌN [1]",
                     () => ApplyUpgrade(1)
                 );
@@ -343,10 +341,9 @@ namespace DungeonGame.World
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY, cardW, cardH),
                     damageSprite,
-                    "💥 CỰC ĐẠI SÁT THƯƠNG",
-                    "[Ngoại hình: Đại Trượng Hủy Diệt Titan]",
-                    $"Sát thương mỗi phát: [{curDmg:F0} DMG] ➔ [{nextDmg:F0} DMG] (+60% Dame) | Đạn to x1.5",
-                    "Thân trượng hắc thạch titan to lớn, bắn ra đại hỏa cầu khổng lồ thổi bay quái vật!",
+                    "💥 CỰC ĐẠI SÁT THƯƠNG  •  [Đại Trượng Hủy Diệt Titan]",
+                    $"⚡ Sát thương mỗi phát: [{curDmg:F0} DMG] ➔ [{nextDmg:F0} DMG] (+60% Dame)  |  Đạn to x1.5",
+                    "Thân hắc thạch titan to lớn, bắn đại hỏa cầu khổng lồ thổi bay mọi kẻ địch!",
                     "CHỌN [2]",
                     () => ApplyUpgrade(2)
                 );
@@ -355,9 +352,8 @@ namespace DungeonGame.World
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY * 2, cardW, cardH),
                     speedSprite,
-                    "⚡ PHONG BẠO TỐC ĐỘ",
-                    "[Ngoại hình: Trượng Thần Tốc Phong Lôi]",
-                    $"Tốc độ xả đạn: [{curRate:F1} viên/s] ➔ [{nextRate:F1} viên/s] (+50% Tốc độ bắn)",
+                    "⚡ PHONG BẠO TỐC ĐỘ  •  [Trượng Thần Tốc Phong Lôi]",
+                    $"⚡ Tốc độ xả đạn: [{curRate:F1} viên/s] ➔ [{nextRate:F1} viên/s] (+50% Tốc độ bắn)",
                     "Cánh thiên thần mạ vàng thanh thoát, xả đạn như bão táp quét sạch kẻ địch trong chớp mắt!",
                     "CHỌN [3]",
                     () => ApplyUpgrade(3)
@@ -367,65 +363,62 @@ namespace DungeonGame.World
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY * 3, cardW, cardH),
                     holyPotionSprite,
-                    "💖 THÁNH THỦY HỒI PHỤC",
-                    "[Vật phẩm: Tiên Dược Thánh Hoàng Gia]",
-                    $"Sinh mệnh hiệp sĩ: [{curHp:F0}/{maxHp:F0} HP] ➔ [HỒI PHỤC ĐẦY ĐỦ 100% MÁU]",
-                    "Bình tiên dược cứu sinh khẩn cấp, lập tức hồi phục 100% lượng máu bị trừ của hiệp sĩ!",
+                    "💖 THÁNH THỦY HỒI PHỤC  •  [Tiên Dược Thánh Hoàng Gia]",
+                    $"⚡ Sinh mệnh hiệp sĩ: [{curHp:F0}/{maxHp:F0} HP] ➔ [HỒI PHỤC 100% ĐẦY BÌNH MÁU]",
+                    "Bình tiên dược cứu sinh khẩn cấp, lập tức hồi phục đầy đủ 100% lượng máu của hiệp sĩ!",
                     "CHỌN [4]",
                     () => ApplyUpgrade(4)
                 );
 
                 // Nút đóng góc trên
-                if (GUI.Button(new Rect(sx + sw - 48f, sy + 12f, 36f, 32f), "X", closeBtnStyle))
+                if (GUI.Button(new Rect(sx + sw - 46f, sy + 10f, 36f, 32f), "X", closeBtnStyle))
                 {
                     CloseShop();
                 }
             }
         }
 
-        private void DrawUpgradeCard(Rect rect, Sprite iconSprite, string title, string badge, string stats, string desc, string shortcutKey, System.Action onSelect)
+        private void DrawUpgradeCard(Rect rect, Sprite iconSprite, string headerLine, string statsLine, string descLine, string shortcutKey, System.Action onSelect)
         {
             // 1. Nền Card & Viền
             GUI.DrawTexture(new Rect(rect.x - 1, rect.y - 1, rect.width + 2, rect.height + 2), cardBorderTex);
             GUI.DrawTexture(rect, cardBgTex);
 
-            // 2. Khung Icon Vũ Khí (Bên trái) - Khung to 110x90 px
-            Rect iconBorder = new Rect(rect.x + 14f, rect.y + 14f, 114f, 90f);
+            // 2. Khung Icon Vũ Khí (Bên trái) - Khung 106x86 px
+            Rect iconBorder = new Rect(rect.x + 12f, rect.y + 13f, 108f, 86f);
             GUI.DrawTexture(iconBorder, iconBorderTex);
-            Rect iconBox = new Rect(rect.x + 16f, rect.y + 16f, 110f, 86f);
+            Rect iconBox = new Rect(rect.x + 14f, rect.y + 15f, 104f, 82f);
             GUI.DrawTexture(iconBox, iconBgTex);
 
             if (iconSprite != null && iconSprite.texture != null)
             {
-                // Vẽ sprite vũ khí căn giữa khung
-                Rect spriteRect = new Rect(iconBox.x + 8f, iconBox.y + 6f, iconBox.width - 16f, iconBox.height - 12f);
+                Rect spriteRect = new Rect(iconBox.x + 6f, iconBox.y + 6f, iconBox.width - 12f, iconBox.height - 12f);
                 GUI.DrawTexture(spriteRect, iconSprite.texture, ScaleMode.ScaleToFit);
             }
 
-            // 3. Khối Thông Tin & Chỉ Số (Ở giữa) - Không bao giờ bị đè chữ
-            float infoX = rect.x + 142f;
-            float infoW = rect.width - 325f;
-
-            // Dòng 1: Tiêu đề vũ khí & Badge ngoại hình mới (Riêng biệt, cao 30px)
-            GUI.Label(new Rect(infoX, rect.y + 12f, 260f, 28f), title, cardTitleStyle);
-            GUI.Label(new Rect(infoX + 265f, rect.y + 14f, infoW - 265f, 26f), badge, cardBadgeStyle);
-
-            // Dòng 2: Chỉ số Thuộc tính So sánh (Trước ➔ Sau) (Riêng biệt, cao 26px)
-            GUI.Label(new Rect(infoX, rect.y + 44f, infoW, 26f), stats, cardStatStyle);
-
-            // Dòng 3: Mô tả Hiệu Quả Chiến Đấu (Riêng biệt, cao 24px)
-            GUI.Label(new Rect(infoX, rect.y + 74f, infoW, 24f), desc, cardDescStyle);
-
-            // 4. Nút Chọn Nâng Cấp (Bên phải) - To rõ và nổi bật
-            float btnW = 160f;
-            float btnH = 68f;
-            float btnX = rect.x + rect.width - btnW - 16f;
-            float btnY = rect.y + 25f;
+            // 3. Nút Chọn Nâng Cấp (Bên phải)
+            float btnW = 150f;
+            float btnH = 66f;
+            float btnX = rect.x + rect.width - btnW - 14f;
+            float btnY = rect.y + 23f;
 
             if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), $"✨ NÂNG CẤP ✨\n({shortcutKey})", upgradeBtnStyle))
             {
                 onSelect?.Invoke();
             }
+
+            // 4. Khối Thông Tin & Chỉ Số (Ở giữa) - Chiều rộng tính tự động, không bao giờ đè chữ
+            float infoX = rect.x + 132f;
+            float infoW = btnX - infoX - 12f;
+
+            // Dòng 1: Tiêu đề vũ khí & Tên ngoại hình mới (Riêng biệt, cao 26px)
+            GUI.Label(new Rect(infoX, rect.y + 12f, infoW, 26f), headerLine, cardTitleStyle);
+
+            // Dòng 2: Chỉ số Thuộc tính So sánh (Trước ➔ Sau) (Riêng biệt, cao 24px)
+            GUI.Label(new Rect(infoX, rect.y + 42f, infoW, 24f), statsLine, cardStatStyle);
+
+            // Dòng 3: Mô tả Hiệu Quả Chiến Đấu (Riêng biệt, cao 22px)
+            GUI.Label(new Rect(infoX, rect.y + 70f, infoW, 22f), descLine, cardDescStyle);
         }
 
         private void ApplyUpgrade(int option)
