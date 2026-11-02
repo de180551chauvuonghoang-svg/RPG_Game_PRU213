@@ -59,7 +59,7 @@ namespace DungeonGame.Enemy
         {
             if (playerTarget == null)
             {
-                var player = Object.FindAnyObjectByType<PlayerController>();
+                var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
                 if (player != null)
                 {
                     playerTarget = player.transform;
@@ -80,7 +80,7 @@ namespace DungeonGame.Enemy
             Vector2 direction = (playerTarget.position - transform.position).normalized;
 
             // Di chuyển đuổi theo Player
-            rb.velocity = direction * moveSpeed;
+            rb.linearVelocity = direction * moveSpeed;
 
             // Lật mặt Sprite theo hướng chạy
             if (spriteRenderer != null && direction.x != 0)

@@ -49,7 +49,7 @@ namespace DungeonGame.World
 
         private void FindPlayer()
         {
-            var player = Object.FindAnyObjectByType<PlayerController>();
+            var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
             if (player != null)
             {
                 playerTransform = player.transform;

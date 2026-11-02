@@ -85,7 +85,7 @@ namespace DungeonGame.Enemy
 
         private void FindPlayer()
         {
-            var player = Object.FindAnyObjectByType<PlayerController>();
+            var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
             if (player != null) playerTarget = player.transform;
         }
 

@@ -70,7 +70,7 @@ namespace DungeonGame.UI
             }
 
             // Kết nối với HealthComponent của Player
-            var player = Object.FindAnyObjectByType<PlayerController>();
+            var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
             if (player != null)
             {
                 playerHealth = player.GetComponent<HealthComponent>();
