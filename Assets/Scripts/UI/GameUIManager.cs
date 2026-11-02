@@ -541,9 +541,14 @@ namespace DungeonGame.UI
             GUI.Label(new Rect(rightEdge - 420f, 15f, 420f, 32f), $"{stageTitleText}  |  ★ {score:N0} Điểm", scoreStyle);
             GUI.Label(new Rect(rightEdge - 420f, 48f, 420f, 28f), $"☠ TIÊU DIỆT: {kills} con", killsStyle);
 
+            if (!GameManager.Instance.IsBossActive && !GameManager.Instance.IsBossDefeated)
+            {
+                GUI.Label(new Rect(rightEdge - 420f, 78f, 420f, 24f), $"👑 MỐC TRIỆU HỒI BOSS: {GameManager.Instance.BossScoreThreshold:N0} ĐIỂM", bossNoticeStyle);
+            }
+
             if (stage == 2)
             {
-                GUI.Label(new Rect(bx, by + bh + 4f, 360f, 22f), "🔥 [MÀN 2: THÀNH TRÌ DUNG NHAM]", stageBannerSubStyle);
+                GUI.Label(new Rect(bx, by + bh + 4f, 380f, 22f), "🔥 [MÀN 2: THÀNH TRÌ DUNG NHAM]", stageBannerSubStyle);
             }
 
             // 3. Đồng hồ thời gian
@@ -562,12 +567,12 @@ namespace DungeonGame.UI
             float maxHp = boss.MaxHealth;
             float pct = Mathf.Clamp01(curHp / maxHp);
 
-            float barW = Mathf.Min(Screen.width - 100f, 560f);
+            float barW = Mathf.Min(Screen.width - 100f, 580f);
             float barH = 34f;
             float barX = (Screen.width - barW) / 2f;
             float barY = 58f;
 
-            // Khung viền tím neon
+            // Khung viền tím neon / đỏ cam
             GUI.DrawTexture(new Rect(barX - 3, barY - 3, barW + 6, barH + 6), bossBorderTex);
             GUI.DrawTexture(new Rect(barX, barY, barW, barH), hpBgTex);
 
@@ -577,9 +582,13 @@ namespace DungeonGame.UI
                 GUI.DrawTexture(new Rect(barX, barY, barW * pct, barH), bossFillTex);
             }
 
-            // Tiêu đề Boss & Cảnh báo trừ 10 máu
+            // Tiêu đề Boss & Cảnh báo chiêu thức
             GUI.Label(new Rect(barX, barY + 4f, barW, 26f), $"👑 {boss.BossName} : {Mathf.CeilToInt(curHp)} / {Mathf.CeilToInt(maxHp)}", bossTitleStyle);
-            GUI.Label(new Rect(barX, barY + 36f, barW, 20f), "⚠️ ĐÒN ĐÁNH CỦA BOSS TRỪ ĐÚNG 10 MÁU NGƯỜI CHƠI!", bossNoticeStyle);
+
+            string warningMsg = (GameManager.Instance.CurrentStage == 2)
+                ? "🔥 CẢNH BÁO: BOSS BẮN CẦU LỬA DUNG NHAM TỪ XA & SÁT THƯƠNG 14 MÁU!"
+                : "⚠️ CẢNH BÁO: ĐÒN ĐÁNH CỦA BOSS TRỪ ĐÚNG 10 MÁU NGƯỜI CHƠI!";
+            GUI.Label(new Rect(barX, barY + 36f, barW, 20f), warningMsg, bossNoticeStyle);
         }
 
         // ================= VẼ BANNER CỔNG DỊCH CHUYỂN =================

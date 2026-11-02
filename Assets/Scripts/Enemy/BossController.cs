@@ -21,11 +21,20 @@ namespace DungeonGame.Enemy
         [SerializeField] private int scoreReward = 2500;
         [SerializeField] private GameObject portalPrefab;
 
+        [Header("Kỹ năng Bắn Đạn Từ Xa (Dành cho Boss Màn 2)")]
+        [SerializeField] private bool canShootRanged = false;
+        [SerializeField] private GameObject bossBulletPrefab;
+        [SerializeField] private float shootCooldown = 1.7f;
+        [SerializeField] private float bulletSpeed = 8.0f;
+        [SerializeField] private float bulletDamage = 14f;
+        [SerializeField] private bool multiShotOnLowHp = true;
+
         private Rigidbody2D rb;
         private SpriteRenderer spriteRenderer;
         private HealthComponent health;
         private Transform playerTarget;
         private bool isDead = false;
+        private float nextShootTime = 0f;
 
         public string BossName => bossName;
         public float CurrentHealth => health != null ? health.CurrentHealth : 0f;
@@ -48,6 +57,8 @@ namespace DungeonGame.Enemy
             {
                 GameManager.Instance.RegisterActiveBoss(this);
             }
+
+            nextShootTime = Time.time + 1.2f;
         }
 
         private void OnEnable()
@@ -75,6 +86,71 @@ namespace DungeonGame.Enemy
             {
                 playerTarget = player.transform;
             }
+        }
+
+        private void Update()
+        {
+            if (isDead || !canShootRanged || Time.timeScale <= 0f) return;
+
+            if (playerTarget == null)
+            {
+                FindPlayer();
+                if (playerTarget == null) return;
+            }
+
+            if (Time.time >= nextShootTime)
+            {
+                nextShootTime = Time.time + shootCooldown;
+                ShootAtPlayer();
+            }
+        }
+
+        private void ShootAtPlayer()
+        {
+            if (playerTarget == null) return;
+
+            if (bossBulletPrefab == null)
+            {
+                bossBulletPrefab = Resources.Load<GameObject>("Boss_Fireball");
+#if UNITY_EDITOR
+                if (bossBulletPrefab == null) bossBulletPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Boss_Fireball.prefab");
+#endif
+            }
+            if (bossBulletPrefab == null) return;
+
+            Vector2 dir = (playerTarget.position - transform.position).normalized;
+            bool isLowHp = (CurrentHealth / MaxHealth) <= 0.5f;
+
+            if (multiShotOnLowHp && isLowHp)
+            {
+                // Khi máu dưới 50%, Boss nổi giận bắn loạt 3 quả cầu lửa hình nón
+                FireSingleBullet(dir);
+                FireSingleBullet(RotateVector(dir, 20f));
+                FireSingleBullet(RotateVector(dir, -20f));
+            }
+            else
+            {
+                FireSingleBullet(dir);
+            }
+        }
+
+        private void FireSingleBullet(Vector2 direction)
+        {
+            Vector3 spawnPos = transform.position + (Vector3)(direction * 1.3f);
+            GameObject bObj = Instantiate(bossBulletPrefab, spawnPos, Quaternion.identity);
+            var proj = bObj.GetComponent<DungeonGame.Combat.BossProjectile>();
+            if (proj != null)
+            {
+                proj.Launch(direction, bulletSpeed, bulletDamage, 4.5f);
+            }
+        }
+
+        private Vector2 RotateVector(Vector2 v, float degrees)
+        {
+            float rad = degrees * Mathf.Deg2Rad;
+            float sin = Mathf.Sin(rad);
+            float cos = Mathf.Cos(rad);
+            return new Vector2(cos * v.x - sin * v.y, sin * v.x + cos * v.y);
         }
 
         private void FixedUpdate()
@@ -121,27 +197,36 @@ namespace DungeonGame.Enemy
                 spawner.ClearAllEnemies();
             }
 
-            // 3. Triệu hồi Cổng Dịch Chuyển Không Gian ngay tại vị trí Boss hy sinh
-            if (portalPrefab != null)
+            // 3. Nếu là Màn 1: Triệu hồi Cổng Dịch Chuyển qua Màn 2
+            // Nếu là Màn 2: Mở modal toàn thắng Victory!
+            bool isStage2 = GameManager.Instance != null && GameManager.Instance.CurrentStage == 2;
+            if (!isStage2)
             {
-                Instantiate(portalPrefab, transform.position, Quaternion.identity);
-            }
-            else
-            {
-                var loaded = Resources.Load<GameObject>("Stage_Portal");
+                if (portalPrefab != null)
+                {
+                    Instantiate(portalPrefab, transform.position, Quaternion.identity);
+                }
+                else
+                {
+                    var loaded = Resources.Load<GameObject>("Stage_Portal");
 #if UNITY_EDITOR
-                if (loaded == null) loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Stage_Portal.prefab");
+                    if (loaded == null) loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Stage_Portal.prefab");
 #endif
-                if (loaded != null) Instantiate(loaded, transform.position, Quaternion.identity);
+                    if (loaded != null) Instantiate(loaded, transform.position, Quaternion.identity);
+                }
             }
 
             // 4. Báo cho GameManager biết Boss đã bị tiêu diệt
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.NotifyBossDefeated(transform.position);
+                if (isStage2)
+                {
+                    GameManager.Instance.CompleteStage();
+                }
             }
 
-            Debug.Log($"<color=cyan><b>[BOSS DEFEATED] {bossName} đã bị tiêu diệt! Cổng Dịch Chuyển đã mở ra!</b></color>");
+            Debug.Log($"<color=cyan><b>[BOSS DEFEATED] {bossName} đã bị tiêu diệt! {(isStage2 ? "TOÀN THẮNG MÀN 2!" : "Cổng Dịch Chuyển Màn 2 đã mở!")}</b></color>");
 
             Destroy(gameObject, 0.2f);
         }

@@ -32,9 +32,13 @@ namespace DungeonGame.EditorScripts
         private static void CheckAndGenerateRpgAssets()
         {
             if (!File.Exists("Assets/Sprites/Enemy_Boss.png") ||
+                !File.Exists("Assets/Sprites/Enemy_Boss_Stage2.png") ||
+                !File.Exists("Assets/Sprites/Boss_Fireball.png") ||
                 !File.Exists("Assets/Sprites/Stage_Portal.png") ||
                 !File.Exists("Assets/Sprites/Dungeon_Floor_Lava.png") ||
                 !File.Exists("Assets/Prefabs/Boss_Goliath.prefab") ||
+                !File.Exists("Assets/Prefabs/Boss_InfernalIfrit.prefab") ||
+                !File.Exists("Assets/Prefabs/Boss_Fireball.prefab") ||
                 !File.Exists("Assets/Prefabs/Stage_Portal.prefab") ||
                 GameObject.Find("Dummy_Enemy_1") != null || 
                 GameObject.Find("Dummy_Enemy_2") != null ||
@@ -62,8 +66,10 @@ namespace DungeonGame.EditorScripts
             SaveTextureAsPng(GenerateShopStall64(), "Assets/Sprites/Shop_Stall.png");
             SaveTextureAsPng(GenerateDungeonFloor64(), "Assets/Sprites/Dungeon_Floor.png");
 
-            // 2. Tạo Sprite Boss Cuối Goliath, Cổng Dịch Chuyển & Sàn Dung Nham Màn 2
+            // 2. Tạo Sprite Boss Màn 1 Goliath, Boss Màn 2 Ifrit, Đạn Cầu Lửa, Cổng Dịch Chuyển & Sàn Dung Nham
             SaveTextureAsPng(GenerateBossGoliath64(), "Assets/Sprites/Enemy_Boss.png");
+            SaveTextureAsPng(GenerateBossStage2Texture64(), "Assets/Sprites/Enemy_Boss_Stage2.png");
+            SaveTextureAsPng(GenerateBossFireballTexture32(), "Assets/Sprites/Boss_Fireball.png");
             SaveTextureAsPng(GenerateStagePortal64(), "Assets/Sprites/Stage_Portal.png");
             SaveTextureAsPng(GenerateDungeonFloorLava64(), "Assets/Sprites/Dungeon_Floor_Lava.png");
 
@@ -85,6 +91,8 @@ namespace DungeonGame.EditorScripts
             ConfigureSpriteImport("Assets/Sprites/Enemy_Skeleton.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Demon.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Boss.png", 32);
+            ConfigureSpriteImport("Assets/Sprites/Enemy_Boss_Stage2.png", 32);
+            ConfigureSpriteImport("Assets/Sprites/Boss_Fireball.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Stage_Portal.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Dungeon_Floor_Lava.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Shop_Stall.png", 32);
@@ -121,6 +129,8 @@ namespace DungeonGame.EditorScripts
             Sprite skeletonSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Skeleton.png");
             Sprite demonSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Demon.png");
             Sprite bossSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Boss.png");
+            Sprite boss2Sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Boss_Stage2.png");
+            Sprite fireballSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Boss_Fireball.png");
             Sprite portalSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Stage_Portal.png");
             Sprite shopSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Shop_Stall.png");
             Sprite staffSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Weapon_Staff.png");
@@ -218,6 +228,83 @@ namespace DungeonGame.EditorScripts
 
             GameObject bossPrefab = PrefabUtility.SaveAsPrefabAsset(bossObj, bossPath);
             Object.DestroyImmediate(bossObj);
+
+            // 3b. PREFAB ĐẠN CẦU LỬA DUNG NHAM CỦA BOSS (BOSS FIREBALL)
+            string fireballPath = "Assets/Prefabs/Boss_Fireball.prefab";
+            GameObject fireballPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(fireballPath);
+            if (fireballPrefab == null)
+            {
+                GameObject fbObj = new GameObject("Boss_Fireball");
+                SpriteRenderer fbSr = fbObj.AddComponent<SpriteRenderer>();
+                fbSr.sprite = fireballSprite;
+                fbSr.sortingOrder = 10;
+                var fbRb = fbObj.AddComponent<Rigidbody2D>();
+                fbRb.gravityScale = 0f;
+                fbRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                var fbCol = fbObj.AddComponent<CircleCollider2D>();
+                fbCol.isTrigger = true;
+                fbCol.radius = 0.35f;
+                fbObj.AddComponent<DungeonGame.Combat.BossProjectile>();
+                fireballPrefab = PrefabUtility.SaveAsPrefabAsset(fbObj, fireballPath);
+                Object.DestroyImmediate(fbObj);
+            }
+            else
+            {
+                SpriteRenderer fbSr = fireballPrefab.GetComponent<SpriteRenderer>();
+                if (fbSr != null && fireballSprite != null) fbSr.sprite = fireballSprite;
+                EditorUtility.SetDirty(fireballPrefab);
+            }
+
+            // 3c. PREFAB BOSS MÀN 2: CHÚA TỂ DUNG NHAM - INFERNAL IFRIT (2,500 HP, ĐÁNH TRỪ 15 MÁU, BẮN CẦU LỬA TỪ XA)
+            string boss2Path = "Assets/Prefabs/Boss_InfernalIfrit.prefab";
+            AssetDatabase.DeleteAsset(boss2Path);
+            AssetDatabase.Refresh();
+
+            GameObject boss2Obj = new GameObject("Boss_InfernalIfrit");
+            try { boss2Obj.tag = "Enemy"; } catch {}
+            boss2Obj.transform.localScale = new Vector3(2.5f, 2.5f, 1f);
+
+            SpriteRenderer boss2Sr = boss2Obj.AddComponent<SpriteRenderer>();
+            boss2Sr.sprite = boss2Sprite;
+            boss2Sr.sortingOrder = 9;
+
+            var boss2Rb = boss2Obj.AddComponent<Rigidbody2D>();
+            boss2Rb.gravityScale = 0f;
+            boss2Rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+            var boss2Col = boss2Obj.AddComponent<CircleCollider2D>();
+            boss2Col.radius = 0.65f;
+
+            var boss2Health = boss2Obj.AddComponent<HealthComponent>();
+            SerializedObject b2hSo = new SerializedObject(boss2Health);
+            b2hSo.FindProperty("maxHealth").floatValue = 2500f; // Siêu trâu 2,500 HP!
+            b2hSo.FindProperty("currentHealth").floatValue = 2500f;
+            b2hSo.ApplyModifiedProperties();
+
+            boss2Obj.AddComponent<HitFlash>();
+
+            var boss2Dmg = boss2Obj.AddComponent<DamageOnContact>();
+            SerializedObject b2dSo = new SerializedObject(boss2Dmg);
+            b2dSo.FindProperty("damage").floatValue = 15f; // Đòn cận chiến trừ 15 máu!
+            b2dSo.FindProperty("targetLayer").intValue = ~0;
+            b2dSo.ApplyModifiedProperties();
+
+            var boss2Ctrl = boss2Obj.AddComponent<BossController>();
+            SerializedObject b2cSo = new SerializedObject(boss2Ctrl);
+            b2cSo.FindProperty("bossName").stringValue = "CHÚA TỂ DUNG NHAM - INFERNAL IFRIT";
+            b2cSo.FindProperty("moveSpeed").floatValue = 2.1f;
+            b2cSo.FindProperty("scoreReward").intValue = 5000;
+            b2cSo.FindProperty("portalPrefab").objectReferenceValue = null; // Diệt xong Boss 2 là toàn thắng
+            b2cSo.FindProperty("canShootRanged").boolValue = true;
+            b2cSo.FindProperty("bossBulletPrefab").objectReferenceValue = fireballPrefab;
+            b2cSo.FindProperty("shootCooldown").floatValue = 1.6f;
+            b2cSo.FindProperty("bulletSpeed").floatValue = 8.5f;
+            b2cSo.FindProperty("bulletDamage").floatValue = 14f;
+            b2cSo.FindProperty("multiShotOnLowHp").boolValue = true;
+            b2cSo.ApplyModifiedProperties();
+
+            GameObject bossStage2Prefab = PrefabUtility.SaveAsPrefabAsset(boss2Obj, boss2Path);
+            Object.DestroyImmediate(boss2Obj);
 
             // 4. PREFAB GIAN HÀNG MA THUẬT (SHOP STALL)
             string shopPath = "Assets/Prefabs/Shop_Stall.prefab";
@@ -358,6 +445,7 @@ namespace DungeonGame.EditorScripts
             if (gm == null) gm = managersObj.AddComponent<GameManager>();
             SerializedObject gmSo = new SerializedObject(gm);
             gmSo.FindProperty("bossPrefab").objectReferenceValue = bossPrefab;
+            gmSo.FindProperty("bossStage2Prefab").objectReferenceValue = bossStage2Prefab;
             gmSo.FindProperty("portalPrefab").objectReferenceValue = portalPrefab;
             gmSo.FindProperty("stage2LavaSprite").objectReferenceValue = lavaFloorSprite;
             gmSo.FindProperty("bossScoreThreshold").intValue = 1000;
@@ -1134,6 +1222,133 @@ namespace DungeonGame.EditorScripts
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Boss Màn 2: Chúa Tể Dung Nham - Infernal Ifrit (64x64 Pixel Art Rực Lửa):
+        /// Cơ thể hộ pháp đá magma đen tuyền nứt nẻ nham thạch rực sáng, sừng dung nham rực cháy, 
+        /// 4 cánh lửa dung nham bốc cháy sau lưng, mắt lửa vàng trắng chói lòa, lõi tim Magma Core sôi sục.
+        /// </summary>
+        private static Texture2D GenerateBossStage2Texture64()
+        {
+            Texture2D tex = CreateEmptyTex(64, 64);
+
+            Color obsidianDark = new Color(0.12f, 0.05f, 0.05f); // Đá núi lửa đen
+            Color magmaCrust = new Color(0.28f, 0.12f, 0.08f);   // Vỏ đá nham thạch
+            Color flameDeep = new Color(0.9f, 0.15f, 0.02f);    // Lửa đỏ thẫm
+            Color flameMid = new Color(1f, 0.45f, 0.05f);       // Lửa cam rực
+            Color flameBright = new Color(1f, 0.85f, 0.15f);    // Lửa vàng chói
+            Color flameCore = new Color(1f, 0.98f, 0.65f);      // Tâm lửa trắng vàng
+            Color hornBase = new Color(0.35f, 0.08f, 0.04f);
+
+            // 1. Cánh lửa dung nham rực cháy sau lưng (4 cánh)
+            // Cánh trên trái
+            FillCircle(tex, 8, 48, 10, flameDeep);
+            FillCircle(tex, 10, 48, 7, flameMid);
+            FillCircle(tex, 12, 48, 4, flameBright);
+            // Cánh trên phải
+            FillCircle(tex, 56, 48, 10, flameDeep);
+            FillCircle(tex, 54, 48, 7, flameMid);
+            FillCircle(tex, 52, 48, 4, flameBright);
+            // Cánh dưới trái
+            FillCircle(tex, 6, 28, 8, flameDeep);
+            FillCircle(tex, 8, 28, 5, flameMid);
+            // Cánh dưới phải
+            FillCircle(tex, 58, 28, 8, flameDeep);
+            FillCircle(tex, 56, 28, 5, flameMid);
+
+            // 2. Thân thể khổng lồ hộ pháp bằng đá magma
+            FillCircle(tex, 32, 28, 23, obsidianDark);
+            FillCircle(tex, 32, 28, 20, magmaCrust);
+
+            // Giáp vai gai nham thạch rực lửa
+            FillCircle(tex, 11, 38, 9, obsidianDark);
+            FillCircle(tex, 11, 38, 6, flameMid);
+            FillCircle(tex, 11, 38, 3, flameBright);
+
+            FillCircle(tex, 53, 38, 9, obsidianDark);
+            FillCircle(tex, 53, 38, 6, flameMid);
+            FillCircle(tex, 53, 38, 3, flameBright);
+
+            // Vết nứt dung nham nóng chảy chạy dọc thân hình
+            FillRect(tex, 20, 20, 24, 3, flameMid);
+            FillRect(tex, 22, 21, 20, 1, flameBright);
+
+            FillRect(tex, 18, 14, 28, 3, flameMid);
+            FillRect(tex, 20, 15, 24, 1, flameBright);
+
+            FillRect(tex, 27, 8, 10, 24, flameDeep);
+            FillRect(tex, 29, 10, 6, 20, flameMid);
+            FillRect(tex, 31, 12, 2, 16, flameBright);
+
+            // Lõi Tim Lửa Magma Core cực lớn ở ngực
+            FillCircle(tex, 32, 27, 9, flameDeep);
+            FillCircle(tex, 32, 27, 6, flameMid);
+            FillCircle(tex, 32, 27, 4, flameBright);
+            FillCircle(tex, 32, 27, 2, flameCore);
+
+            // 3. Đầu và Hộp sọ Hỏa Vương Ifrit
+            FillCircle(tex, 32, 45, 14, obsidianDark);
+            FillCircle(tex, 32, 45, 12, magmaCrust);
+
+            // Cặp sừng quỷ nham thạch khổng lồ chĩa lên trời
+            FillCircle(tex, 16, 54, 9, hornBase);
+            FillCircle(tex, 12, 59, 7, flameMid);
+            FillCircle(tex, 8, 62, 5, flameBright);
+            FillCircle(tex, 6, 63, 2, flameCore);
+
+            FillCircle(tex, 48, 54, 9, hornBase);
+            FillCircle(tex, 52, 59, 7, flameMid);
+            FillCircle(tex, 56, 62, 5, flameBright);
+            FillCircle(tex, 58, 63, 2, flameCore);
+
+            // Mắt lửa vàng trắng căm phẫn rực sáng
+            FillRect(tex, 22, 45, 7, 5, flameDeep);
+            FillRect(tex, 35, 45, 7, 5, flameDeep);
+            FillRect(tex, 23, 46, 5, 3, flameBright);
+            FillRect(tex, 36, 46, 5, 3, flameBright);
+            FillRect(tex, 25, 47, 2, 2, Color.white);
+            FillRect(tex, 38, 47, 2, 2, Color.white);
+
+            // Miệng dung nham phun lửa
+            FillRect(tex, 26, 37, 12, 4, flameDeep);
+            FillRect(tex, 28, 38, 8, 2, flameBright);
+
+            // Vương miện gai lửa dung nham trên đỉnh đầu
+            FillCircle(tex, 32, 58, 6, flameMid);
+            FillCircle(tex, 32, 59, 3, flameCore);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Cầu Lửa Ma Thuật của Boss (Boss Fireball) 32x32:
+        /// Cầu dung nham xoáy tròn với quầng lửa cam đỏ và tâm chói lòa
+        /// </summary>
+        private static Texture2D GenerateBossFireballTexture32()
+        {
+            Texture2D tex = CreateEmptyTex(32, 32);
+
+            Color flameGlow = new Color(0.9f, 0.15f, 0.05f, 0.75f);
+            Color flameOuter = new Color(1f, 0.25f, 0.05f);
+            Color flameMid = new Color(1f, 0.65f, 0.1f);
+            Color flameCore = new Color(1f, 0.95f, 0.4f);
+
+            FillCircle(tex, 16, 16, 14, flameGlow);
+            FillCircle(tex, 16, 16, 11, flameOuter);
+            FillCircle(tex, 16, 16, 8, flameMid);
+            FillCircle(tex, 16, 16, 5, flameCore);
+            FillCircle(tex, 15, 17, 2, Color.white);
+
+            // Tia lửa xoay quanh
+            FillCircle(tex, 6, 16, 3, flameOuter);
+            FillCircle(tex, 26, 16, 3, flameOuter);
+            FillCircle(tex, 16, 6, 3, flameMid);
+            FillCircle(tex, 16, 26, 3, flameMid);
+
+            tex.Apply();
+            return tex;
         }
     }
 }

@@ -37,6 +37,7 @@ namespace DungeonGame.Core
 
         [Header("Prefab Boss & Cổng Dịch Chuyển & Sàn Màn 2")]
         [SerializeField] private GameObject bossPrefab;
+        [SerializeField] private GameObject bossStage2Prefab;
         [SerializeField] private GameObject portalPrefab;
         [SerializeField] private Sprite stage2LavaSprite;
 
@@ -67,6 +68,7 @@ namespace DungeonGame.Core
         public BossController ActiveBoss => activeBoss;
         public bool IsBossActive => activeBoss != null && !activeBoss.IsDead;
         public int HighestStageCleared => PlayerPrefs.GetInt("HighestStageCleared", 0);
+        public int BossScoreThreshold => bossScoreThreshold;
 
         private void Awake()
         {
@@ -177,15 +179,18 @@ namespace DungeonGame.Core
             }
 
             GameObject bossObj = null;
-            if (bossPrefab != null)
+            GameObject prefabToSpawn = (currentStage == 2 && bossStage2Prefab != null) ? bossStage2Prefab : bossPrefab;
+
+            if (prefabToSpawn != null)
             {
-                bossObj = Instantiate(bossPrefab, spawnPos, Quaternion.identity);
+                bossObj = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
             }
             else
             {
-                var loaded = Resources.Load<GameObject>("Boss_Goliath");
+                string targetPrefabName = (currentStage == 2) ? "Boss_InfernalIfrit" : "Boss_Goliath";
+                var loaded = Resources.Load<GameObject>(targetPrefabName);
 #if UNITY_EDITOR
-                if (loaded == null) loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Boss_Goliath.prefab");
+                if (loaded == null) loaded = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Prefabs/{targetPrefabName}.prefab");
 #endif
                 if (loaded != null) bossObj = Instantiate(loaded, spawnPos, Quaternion.identity);
             }
@@ -196,7 +201,7 @@ namespace DungeonGame.Core
                 OnBossSpawned?.Invoke(activeBoss);
             }
 
-            Debug.Log($"<color=red><b>🚨 [BOSS SPAWNED] Boss Cuối Màn {currentStage} đã xuất hiện tại {spawnPos}!</b></color>");
+            Debug.Log($"<color=red><b>🚨 [BOSS SPAWNED] {(currentStage == 2 ? "Chúa Tể Dung Nham Ifrit (Màn 2)" : "Chúa Tể Goliath (Màn 1)")} đã xuất hiện tại {spawnPos}!</b></color>");
         }
 
         public void RegisterActiveBoss(BossController boss)
@@ -235,7 +240,7 @@ namespace DungeonGame.Core
         public void TransitionToStage2()
         {
             currentStage = 2;
-            bossScoreThreshold = 2500;
+            bossScoreThreshold = score + 2500;
             isBossSpawned = false;
             isBossDefeated = false;
             activeBoss = null;
