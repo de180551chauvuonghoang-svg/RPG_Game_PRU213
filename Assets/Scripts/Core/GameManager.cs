@@ -13,8 +13,7 @@ namespace DungeonGame.Core
     }
 
     /// <summary>
-    /// Quản lý trạng thái chung của Game (Game Loop, Điểm số, Pause/Resume, Game Over).
-    /// Tương thích cả Unity 6 New Input System lẫn Legacy Input.
+    /// Quản lý trạng thái chung của Game (Game Loop, Điểm số, Kills, Thời gian sinh tồn).
     /// </summary>
     public class GameManager : MonoBehaviour
     {
@@ -24,13 +23,18 @@ namespace DungeonGame.Core
         [SerializeField] private GameState currentState = GameState.Playing;
 
         [Header("Thông số thống kê")]
+        [SerializeField] private int score = 0;
         [SerializeField] private int killCount = 0;
         [SerializeField] private float survivalTime = 0f;
 
-        public event Action<GameState> OnGameStateChanged;
+        // Events cho UI lắng nghe (Observer Pattern)
+        public event Action<int> OnScoreChanged;
         public event Action<int> OnKillCountChanged;
+        public event Action<float> OnSurvivalTimeChanged;
+        public event Action<GameState> OnGameStateChanged;
 
         public GameState CurrentState => currentState;
+        public int Score => score;
         public int KillCount => killCount;
         public float SurvivalTime => survivalTime;
 
@@ -49,6 +53,7 @@ namespace DungeonGame.Core
             if (currentState == GameState.Playing)
             {
                 survivalTime += Time.deltaTime;
+                OnSurvivalTimeChanged?.Invoke(survivalTime);
             }
 
             // Phím tắt Pause nhanh (Escape / P) qua GameInput
@@ -56,6 +61,18 @@ namespace DungeonGame.Core
             {
                 TogglePause();
             }
+        }
+
+        public void AddScore(int amount)
+        {
+            score += amount;
+            OnScoreChanged?.Invoke(score);
+        }
+
+        public void RegisterKill()
+        {
+            killCount++;
+            OnKillCountChanged?.Invoke(killCount);
         }
 
         public void SetState(GameState newState)
@@ -89,10 +106,9 @@ namespace DungeonGame.Core
             }
         }
 
-        public void RegisterKill()
+        public void TriggerGameOver()
         {
-            killCount++;
-            OnKillCountChanged?.Invoke(killCount);
+            SetState(GameState.GameOver);
         }
 
         public void RestartCurrentScene()

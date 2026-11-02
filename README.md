@@ -9,7 +9,7 @@
 ---
 
 ## 🎯 GIỚI THIỆU TỔNG QUAN ĐỒ ÁN
-**RPG Dungeon Survivor 2D** là một tựa game nhập vai hành động 2D góc nhìn trên xuống (Top-Down Roguelike Action RPG). Người chơi vào vai một Hiệp Sĩ Cổ Đại (Ancient Knight) sử dụng Gậy Phép Hỏa Long để chiến đấu, né tránh và sinh tồn trước các đợt quái vật ma quái (Slime Địa Ngục, Xương Ma Ám, Quỷ Dung Nham) trong hầm ngục tăm tối.
+**RPG Dungeon Survivor 2D** là một tựa game nhập vai hành động 2D góc nhìn trên xuống thế giới mở vô tận (Top-Down Infinite Open-World Roguelike RPG). Người chơi vào vai một Hiệp Sĩ Cổ Đại (Ancient Knight) sử dụng Gậy Phép Hỏa Long để chiến đấu, né tránh và sinh tồn trước các đợt quái vật hung hãn (Slime Địa Ngục, Xương Ma Ám, Quỷ Dung Nham). Càng đi xa, thế giới mở càng mở rộng vô tận theo bước chân của người chơi, kèm theo hệ thống đợt quái dồn dập và giao diện HUD hiển thị Điểm Số, Số mạng tiêu diệt, Thời gian sinh tồn và Thanh máu mượt mà.
 
 Dự án được thiết kế chuyên sâu theo chuẩn kiến trúc hướng đối tượng (OOP), các mẫu thiết kế phần mềm (**Design Patterns**) và nguyên lý **Clean Architecture** để đáp ứng toàn diện tiêu chí đánh giá và chấm điểm của giảng viên.
 
@@ -17,18 +17,20 @@ Dự án được thiết kế chuyên sâu theo chuẩn kiến trúc hướng �
 
 ## 🌟 ĐẶC TÍNH KỸ THUẬT & DESIGN PATTERNS ÁP DỤNG
 
-1. **Component-Based Architecture (Kiến trúc hướng thành phần):**
-   - Phân tách độc lập: `PlayerController` (di chuyển & dash), `PlayerCombat` (ngắm bắn & vũ khí), `HealthComponent` (quản lý máu & sát thương).
-2. **Interface Abstraction (`IDamageable`):**
-   - Áp dụng nguyên lý Đa hình (Polymorphism) và Interface Segregation. Bất kỳ đối tượng nào (Player, Enemy, Boss, Vật cản) mang `IDamageable` đều có thể nhận sát thương và lực nảy lùi (`Knockback`).
-3. **Object Pooling Pattern (`ObjectPooler`):**
-   - Tái sử dụng các viên đạn ma thuật và hiệu ứng va chạm để triệt tiêu việc cấp phát/giải phóng bộ nhớ liên tục (`Instantiate`/`Destroy`), ngăn ngừa hiện tượng tụt FPS do Garbage Collector.
-4. **Data-Driven Design (`ScriptableObject`):**
-   - Sử dụng `WeaponData` để lưu trữ và cấu hình các chỉ số vũ khí (Damage, Speed, Spread, FireRate) tách biệt hoàn toàn với logic mã nguồn.
-5. **Observer Pattern (C# Events / Actions):**
-   - Các sự kiện `OnHealthChanged`, `OnDamageTaken`, `OnGameStateChanged` giúp tách rời liên kết (Decoupling) giữa hệ thống Combat với Giao diện (UI) và Âm thanh.
-6. **Cross-Input Compatibility (`GameInput`):**
-   - Tương thích 100% với cả **Unity 6 New Input System** (`UnityEngine.InputSystem`) lẫn Legacy Input.
+1. **Procedural Infinite Chunk Generation (`InfiniteWorldManager`):**
+   - Thế giới mở vô tận chia thành các ô Chunk (16x16 mét). Người chơi đi tới đâu hầm ngục sinh ra tới đó xung quanh người chơi và tự động thu hồi các vùng đất ở quá xa để tối ưu RAM, giữ FPS luôn ổn định 60 - 120 FPS.
+2. **Finite State Machine AI (`EnemyController`):**
+   - Quái vật tự động tìm mục tiêu (`Player`), bám đuổi theo hướng vector chuẩn hóa, tự lật Sprite và kích hoạt sát thương va chạm qua `DamageOnContact`.
+3. **Dynamic Wave Spawner (`EnemySpawner`):**
+   - Sinh quái liên tục ở ngoài viền màn hình theo bán kính 14 - 20 đơn vị, tự động tăng tần suất và số lượng quái theo thời gian sinh tồn (Difficulty Scaling).
+4. **Component-Based Architecture:**
+   - Phân tách độc lập: `PlayerController`, `PlayerCombat`, `HealthComponent`, `EnemyController`.
+5. **Interface Abstraction (`IDamageable`):**
+   - Bất kỳ đối tượng nào (Player, Enemy, Boss) mang `IDamageable` đều có thể nhận sát thương và lực nảy lùi (`Knockback`).
+6. **Object Pooling Pattern (`ObjectPooler`):**
+   - Tái sử dụng các viên đạn ma thuật và hiệu ứng để triệt tiêu Garbage Collection spike.
+7. **Observer Pattern (C# Events / Actions):**
+   - `GameManager` phát sự kiện `OnScoreChanged`, `OnKillCountChanged`, `OnSurvivalTimeChanged`, `OnGameStateChanged` đến `GameUIManager` để cập nhật giao diện thời gian thực mà không bị ràng buộc phụ thuộc (Decoupling).
 
 ---
 
@@ -36,31 +38,37 @@ Dự án được thiết kế chuyên sâu theo chuẩn kiến trúc hướng �
 
 ```mermaid
 graph LR
-    A["Giai đoạn 1: Core Mechanics<br>(HOÀN THÀNH 100%)"] --> B["Giai đoạn 2: Enemy AI & Spawner<br>(ĐANG TRIỂN KHAI)"]
-    B --> C["Giai đoạn 3: Boss & Polishing<br>(HOÀN THIỆN)"]
+    A["Giai đoạn 1: Core Mechanics<br>(HOÀN THÀNH 100%)"] --> B["Giai đoạn 2: Open World & AI Spawner<br>(HOÀN THÀNH 100%)"]
+    B --> C["Giai đoạn 3: Progression & Boss<br>(HOÀN THIỆN)"]
 ```
 
-### ✅ GIAI ĐOẠN 1: Core Mechanics & Player Framework (Đã hoàn thành)
-- [x] Di chuyển 8 hướng mượt mà với `Rigidbody2D`, tự động chuẩn hóa vector tránh lỗi đi chéo nhanh hơn đi thẳng.
+### ✅ GIAI ĐOẠN 1: Core Mechanics & Player Framework (Đã hoàn thành 100%)
+- [x] Di chuyển 8 hướng mượt mà với `Rigidbody2D`, tự động chuẩn hóa vector.
 - [x] Cơ chế **Dash (Lướt né đòn)** kèm thời gian miễn nhiễm sát thương (I-Frames).
 - [x] Nhân vật và gậy phép tự động xoay 360 độ theo con trỏ chuột.
-- [x] Cơ chế bắn đạn cầu lửa liên thanh có độ giật ngẫu nhiên (`Spread Angle`), tự động lọc va chạm không tự trúng người chơi.
+- [x] Cơ chế bắn đạn cầu lửa ma thuật liên thanh có độ giật ngẫu nhiên (`Spread Angle`), tự động lọc va chạm.
 - [x] Hệ thống Máu (`HealthComponent`), Lực nảy lùi (`Knockback`) và Hiệu ứng nháy đỏ trúng đòn (`HitFlash`).
 - [x] Camera 2D mượt mà (`SmoothDamp`) tích hợp cơ chế `Look-Ahead` nhìn về hướng chuột.
-- [x] Thiết kế đồ họa RPG Pixel Art: Hiệp Sĩ, Slime Địa Ngục, Xương Ma, Quỷ Lửa, Sàn đá hầm ngục.
 
-### ⏳ GIAI ĐOẠN 2: Enemy AI, Wave Spawner & Item Drops (Đang triển khai)
-- [ ] AI Quái cận chiến (`MeleeEnemy`) tự tìm đường, bám đuổi Player và tấn công khi vào tầm.
-- [ ] AI Quái bắn xa (`RangedEnemy`) giữ khoảng cách an toàn (Kiting) và ngắm bắn Player.
-- [ ] Hệ thống Spawner sinh quái theo từng đợt (Wave System) với độ khó tăng dần theo thời gian sinh tồn.
-- [ ] Rớt vật phẩm: Ngọc kinh nghiệm (Exp Gem), Bình hồi máu, Tiền vàng khi quái bị tiêu diệt.
+### ✅ GIAI ĐOẠN 2: Open World, AI Quái, Spawner & HUD Điểm Số (Đã hoàn thành 100%)
+- [x] **Thế Giới Mở Vô Tận (Infinite World Generation):** Đi tới đâu bản đồ tự sinh sàn đá hầm ngục tới đó, tự giải phóng vùng đất ở xa.
+- [x] **AI Quái Vật Đa Dạng:**
+  - *Slime Địa Ngục:* Tốc độ nhanh (3.6), máu vừa (70 HP), 100 điểm.
+  - *Xương Ma Ám:* Tốc độ vừa (2.7), máu trâu (120 HP), 250 điểm.
+  - *Quỷ Dung Nham:* Tốc độ chậm (2.1), siêu trâu (220 HP), sát thương lớn (25 dmg), 500 điểm.
+- [x] **Dynamic Enemy Spawner:** Sinh quái dồn dập xung quanh ngoài màn hình với số lượng tăng dần theo thời gian.
+- [x] **Giao Diện HUD Thời Gian Thực:**
+  - Điểm số (Score) nhảy số vàng kim khi tiêu diệt quái.
+  - Số quái đã tiêu diệt (Kills Count).
+  - Đồng hồ đếm thời gian sinh tồn (Survival Timer).
+  - Thanh máu động của Hiệp Sĩ (Health Bar kèm text HP).
+  - Màn hình Game Over khi tử trận.
 
-### ⏳ GIAI ĐOẠN 3: Progression, Boss Fight & Polishing (Hoàn thiện đồ án)
+### ⏳ GIAI ĐOẠN 3: Progression, Boss Fight & Polishing (Giai đoạn hoàn thiện)
 - [ ] Hệ thống nâng cấp kỹ năng khi lên cấp: Chọn 1 trong 3 thẻ bài kỹ năng ngẫu nhiên (Roguelike Card Upgrades).
 - [ ] Trùm cuối (Boss) xuất hiện với 3 Phase chiêu thức: Bắn chùm đạn cánh quạt, Dash càn quét, Triệu hồi quái đệ.
-- [ ] Giao diện HUD hoàn chỉnh: Thanh máu mượt (Smooth HP bar), Số đợt quái, Điểm số, Menu Tạm dừng, Màn hình Game Over & Chiến thắng.
 - [ ] Hệ thống Lưu trữ điểm cao (`SaveManager`) và Âm thanh SFX/BGM.
-- [ ] Đóng gói và Build game file chạy độc lập `.exe`.
+- [ ] Tối ưu hóa ánh sáng 2D URP và Đóng gói Build game file chạy độc lập `.exe`.
 
 ---
 
@@ -68,42 +76,8 @@ graph LR
 
 | Phím | Chức năng |
 | :--- | :--- |
-| **W, A, S, D** | Di chuyển Hiệp Sĩ 8 hướng |
+| **W, A, S, D** | Di chuyển Hiệp Sĩ 8 hướng khắp thế giới mở |
 | **Con trỏ chuột (Mouse)** | Xoay hướng nhìn và ngắm gậy phép 360 độ |
 | **Giữ Chuột Trái** hoặc **Phím J / K** | Bắn đạn cầu lửa ma thuật liên thanh |
 | **Space** hoặc **Chuột phải** | Lướt né đòn (**Dash**) kèm trạng thái bất tử ngắn |
 | **Escape** hoặc **P** | Tạm dừng trò chơi (Pause / Resume) |
-
----
-
-## 📂 CẤU TRÚC DỰ ÁN & MÃ NGUỒN
-
-```
-Assets/
-├── Editor/
-│   ├── AutoSceneSetup.cs       # Script tự động dựng Scene 1-click
-│   └── RpgAssetGenerator.cs    # Script tự động vẽ và gán Sprite RPG Pixel Art
-├── Prefabs/
-│   └── Bullet.prefab           # Prefab cầu lửa ma pháp tích hợp Object Pooling
-├── Data/
-│   └── PistolData.asset        # Dữ liệu vũ khí ScriptableObject
-├── Sprites/                    # Toàn bộ Sprite RPG (Hiệp Sĩ, Quái, Đạn, Sàn đá)
-└── Scripts/
-    ├── Camera/
-    │   └── CameraFollow2D.cs   # Camera mượt mà có look-ahead
-    ├── Combat/
-    │   ├── IDamageable.cs      # Interface trừu tượng hệ thống sát thương
-    │   ├── HealthComponent.cs  # Quản lý máu, i-frames, knockback
-    │   ├── HitFlash.cs         # Hiệu ứng nháy đỏ khi nhận đòn
-    │   ├── Projectile.cs       # Đạn bay, va chạm, gây sát thương
-    │   └── DamageOnContact.cs  # Sát thương va chạm (quái / bẫy)
-    ├── Core/
-    │   ├── GameInput.cs        # Xử lý input tương thích Unity 6
-    │   ├── GameManager.cs      # Quản lý vòng lặp game, điểm số, pause
-    │   └── ObjectPooler.cs     # Design Pattern Object Pool
-    ├── Player/
-    │   ├── PlayerController.cs # Di chuyển 8 hướng, dash né đòn
-    │   └── PlayerCombat.cs     # Ngắm bắn chuột, nạp đạn, self-healing
-    └── ScriptableObjects/
-        └── WeaponData.cs       # Định nghĩa ScriptableObject vũ khí
-```

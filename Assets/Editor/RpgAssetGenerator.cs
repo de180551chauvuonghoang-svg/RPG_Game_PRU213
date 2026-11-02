@@ -4,10 +4,14 @@ using DungeonGame.Cameras;
 using DungeonGame.Combat;
 using DungeonGame.Core;
 using DungeonGame.Data;
+using DungeonGame.Enemy;
 using DungeonGame.Player;
+using DungeonGame.UI;
+using DungeonGame.World;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DungeonGame.EditorScripts
 {
@@ -19,11 +23,11 @@ namespace DungeonGame.EditorScripts
             EditorApplication.delayCall += CheckAndGenerateRpgAssets;
         }
 
-        [MenuItem("DungeonGame/Thiết Kế Lại Toàn Bộ Nhân Vật Kiểu RPG (1-Click)", priority = 1)]
-        public static void ForceGenerate()
+        [MenuItem("DungeonGame/Triển Khai Giai Đoạn 2 (Thế Giới Mở + Spawn Quái + Điểm Số)", priority = 0)]
+        public static void ForceGenerateStage2()
         {
             GenerateAllRpgAssets();
-            ApplyToCurrentScene();
+            ApplyStage2ToCurrentScene();
         }
 
         private static void CheckAndGenerateRpgAssets()
@@ -31,7 +35,7 @@ namespace DungeonGame.EditorScripts
             if (!File.Exists("Assets/Sprites/Hero_Knight.png"))
             {
                 GenerateAllRpgAssets();
-                ApplyToCurrentScene();
+                ApplyStage2ToCurrentScene();
             }
         }
 
@@ -39,6 +43,10 @@ namespace DungeonGame.EditorScripts
         {
             if (!AssetDatabase.IsValidFolder("Assets/Sprites"))
                 AssetDatabase.CreateFolder("Assets", "Sprites");
+            if (!AssetDatabase.IsValidFolder("Assets/Prefabs"))
+                AssetDatabase.CreateFolder("Assets", "Prefabs");
+            if (!AssetDatabase.IsValidFolder("Assets/Data"))
+                AssetDatabase.CreateFolder("Assets", "Data");
 
             SaveTextureAsPng(GenerateKnightHero(), "Assets/Sprites/Hero_Knight.png");
             SaveTextureAsPng(GenerateDemonSlime(), "Assets/Sprites/Enemy_Slime.png");
@@ -50,7 +58,6 @@ namespace DungeonGame.EditorScripts
 
             AssetDatabase.Refresh();
 
-            // Cấu hình import settings cho các file PNG mới
             ConfigureSpriteImport("Assets/Sprites/Hero_Knight.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Slime.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Enemy_Skeleton.png", 32);
@@ -76,7 +83,7 @@ namespace DungeonGame.EditorScripts
             }
         }
 
-        public static void ApplyToCurrentScene()
+        public static void ApplyStage2ToCurrentScene()
         {
             Sprite heroSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Hero_Knight.png");
             Sprite slimeSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Enemy_Slime.png");
@@ -86,160 +93,375 @@ namespace DungeonGame.EditorScripts
             Sprite bulletSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Magic_Bullet.png");
             Sprite floorSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Dungeon_Floor.png");
 
-            // 1. CẬP NHẬT PREFAB ĐẠN (MAGIC BULLET)
+            // 1. TẠO HOẶC CẬP NHẬT PREFAB ĐẠN (MAGIC BULLET)
             string bulletPath = "Assets/Prefabs/Bullet.prefab";
             GameObject bulletPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(bulletPath);
-            if (bulletPrefab != null)
+            if (bulletPrefab == null)
+            {
+                GameObject bObj = new GameObject("Bullet");
+                bObj.AddComponent<SpriteRenderer>().sprite = bulletSprite;
+                var bRb = bObj.AddComponent<Rigidbody2D>();
+                bRb.gravityScale = 0f;
+                bRb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+                var bCol = bObj.AddComponent<CircleCollider2D>();
+                bCol.isTrigger = true;
+                bCol.radius = 0.25f;
+                bObj.AddComponent<Projectile>();
+                bulletPrefab = PrefabUtility.SaveAsPrefabAsset(bObj, bulletPath);
+                Object.DestroyImmediate(bObj);
+            }
+            else
             {
                 SpriteRenderer bSr = bulletPrefab.GetComponent<SpriteRenderer>();
-                if (bSr != null && bulletSprite != null)
-                {
-                    bSr.sprite = bulletSprite;
-                    bSr.color = Color.white;
-                }
+                if (bSr != null && bulletSprite != null) bSr.sprite = bulletSprite;
                 EditorUtility.SetDirty(bulletPrefab);
             }
 
-            // 2. CẬP NHẬT WEAPON DATA
+            // 2. TẠO WEAPON DATA
             string weaponPath = "Assets/Data/PistolData.asset";
             WeaponData weaponData = AssetDatabase.LoadAssetAtPath<WeaponData>(weaponPath);
-            if (weaponData != null)
+            if (weaponData == null)
             {
-                weaponData.weaponName = "Gậy Phép Hỏa Long (RPG)";
-                weaponData.weaponIcon = staffSprite;
-                weaponData.damage = 35f;
-                weaponData.projectileSpeed = 16f;
-                weaponData.fireRate = 0.16f;
-                weaponData.spreadAngle = 4f;
-                weaponData.knockbackForce = 9f;
-                EditorUtility.SetDirty(weaponData);
+                weaponData = ScriptableObject.CreateInstance<WeaponData>();
+                AssetDatabase.CreateAsset(weaponData, weaponPath);
             }
+            weaponData.weaponName = "Gậy Phép Hỏa Long (RPG)";
+            weaponData.weaponIcon = staffSprite;
+            weaponData.damage = 35f;
+            weaponData.projectileSpeed = 16f;
+            weaponData.fireRate = 0.16f;
+            weaponData.spreadAngle = 3.5f;
+            weaponData.knockbackForce = 9f;
+            weaponData.projectileLifetime = 3f;
+            weaponData.projectilePoolTag = "PlayerBullet";
+            EditorUtility.SetDirty(weaponData);
 
-            // 3. CẬP NHẬT PLAYER
+            // 3. TẠO 3 PREFAB QUÁI VẬT RPG (SLIME, SKELETON, DEMON)
+            GameObject slimePrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Slime.prefab", slimeSprite, 70f, 3.6f, 100, 10f, 1.3f);
+            GameObject skeletonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Skeleton.prefab", skeletonSprite, 120f, 2.7f, 250, 15f, 1.4f);
+            GameObject demonPrefab = CreateEnemyPrefab("Assets/Prefabs/Enemy_Demon.prefab", demonSprite, 220f, 2.1f, 500, 25f, 1.6f);
+
+            // 4. CẬP NHẬT PLAYER
             PlayerController player = Object.FindAnyObjectByType<PlayerController>();
-            if (player != null)
+            if (player == null)
             {
-                SpriteRenderer pSr = player.GetComponent<SpriteRenderer>();
-                if (pSr != null && heroSprite != null)
-                {
-                    pSr.sprite = heroSprite;
-                    pSr.color = Color.white;
-                }
-                player.transform.localScale = new Vector3(1.4f, 1.4f, 1f);
-
-                // Cập nhật súng
-                Transform pivot = player.transform.Find("WeaponPivot");
-                if (pivot != null)
-                {
-                    Transform gunVisual = pivot.Find("GunVisual");
-                    if (gunVisual != null)
-                    {
-                        SpriteRenderer gSr = gunVisual.GetComponent<SpriteRenderer>();
-                        if (gSr != null && staffSprite != null)
-                        {
-                            gSr.sprite = staffSprite;
-                            gSr.color = Color.white;
-                            gunVisual.localScale = new Vector3(1.2f, 1.2f, 1f);
-                            gunVisual.localPosition = new Vector3(0.6f, 0f, 0f);
-                        }
-                    }
-                }
-
-                // Gán fallback bullet prefab và weapon data cho PlayerCombat
-                PlayerCombat combat = player.GetComponent<PlayerCombat>();
-                if (combat != null)
-                {
-                    SerializedObject combatSo = new SerializedObject(combat);
-                    combatSo.FindProperty("currentWeapon").objectReferenceValue = weaponData;
-                    combatSo.FindProperty("fallbackBulletPrefab").objectReferenceValue = bulletPrefab;
-                    combatSo.ApplyModifiedProperties();
-                }
+                GameObject pObj = new GameObject("Player");
+                pObj.transform.position = Vector3.zero;
+                SpriteRenderer pSr = pObj.AddComponent<SpriteRenderer>();
+                pSr.sprite = heroSprite;
+                pSr.sortingOrder = 10;
+                var pRb = pObj.AddComponent<Rigidbody2D>();
+                pRb.gravityScale = 0f;
+                pRb.constraints = RigidbodyConstraints2D.FreezeRotation;
+                var pCol = pObj.AddComponent<CircleCollider2D>();
+                pCol.radius = 0.5f;
+                player = pObj.AddComponent<PlayerController>();
+                pObj.AddComponent<HealthComponent>();
+                pObj.AddComponent<HitFlash>();
+                pObj.AddComponent<PlayerCombat>();
             }
 
-            // 4. CẬP NHẬT CÁC QUÁI VẬT THÀNH RPG MONSTERS
-            ApplySpriteToEnemy("Dummy_Enemy_1", slimeSprite, 1.3f, 80f);
-            ApplySpriteToEnemy("Dummy_Enemy_2", skeletonSprite, 1.4f, 120f);
-            ApplySpriteToEnemy("Dummy_Enemy_3", demonSprite, 1.6f, 200f);
+            player.transform.localScale = new Vector3(1.4f, 1.4f, 1f);
+            SpriteRenderer playerSr = player.GetComponent<SpriteRenderer>();
+            if (playerSr != null) playerSr.sprite = heroSprite;
 
-            // 5. TẠO SÀN ĐÁ HẦM NGỤC (DUNGEON TILE FLOOR) ĐỂ KHÔNG BỊ XANH TRƠN
-            CreateDungeonFloorGrid(floorSprite);
-
-            // 6. CẬP NHẬT MÀU NỀN CAMERA
-            if (Camera.main != null)
+            // Weapon Pivot & FirePoint cho Player
+            Transform pivot = player.transform.Find("WeaponPivot");
+            if (pivot == null)
             {
-                Camera.main.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 1f);
+                GameObject pivObj = new GameObject("WeaponPivot");
+                pivObj.transform.SetParent(player.transform, false);
+                pivot = pivObj.transform;
             }
 
-            // 7. CẬP NHẬT OBJECT POOLER
-            ObjectPooler pooler = Object.FindAnyObjectByType<ObjectPooler>();
-            if (pooler != null && bulletPrefab != null)
+            Transform gunVisual = pivot.Find("GunVisual");
+            if (gunVisual == null)
             {
-                SerializedObject poolSo = new SerializedObject(pooler);
-                SerializedProperty poolsProp = poolSo.FindProperty("pools");
-                poolsProp.ClearArray();
-                poolsProp.InsertArrayElementAtIndex(0);
-                SerializedProperty pool0 = poolsProp.GetArrayElementAtIndex(0);
-                pool0.FindPropertyRelative("tag").stringValue = "PlayerBullet";
-                pool0.FindPropertyRelative("prefab").objectReferenceValue = bulletPrefab;
-                pool0.FindPropertyRelative("size").intValue = 40;
-                poolSo.ApplyModifiedProperties();
+                GameObject gObj = new GameObject("GunVisual");
+                gObj.transform.SetParent(pivot, false);
+                gunVisual = gObj.transform;
             }
+            gunVisual.localPosition = new Vector3(0.6f, 0f, 0f);
+            gunVisual.localScale = new Vector3(1.2f, 1.2f, 1f);
+            SpriteRenderer gSr = gunVisual.GetComponent<SpriteRenderer>();
+            if (gSr == null) gSr = gunVisual.gameObject.AddComponent<SpriteRenderer>();
+            gSr.sprite = staffSprite;
+            gSr.sortingOrder = 11;
+
+            Transform firePoint = gunVisual.Find("FirePoint");
+            if (firePoint == null)
+            {
+                GameObject fObj = new GameObject("FirePoint");
+                fObj.transform.SetParent(gunVisual, false);
+                fObj.transform.localPosition = new Vector3(0.5f, 0f, 0f);
+                firePoint = fObj.transform;
+            }
+
+            PlayerCombat combat = player.GetComponent<PlayerCombat>();
+            if (combat != null)
+            {
+                SerializedObject combatSo = new SerializedObject(combat);
+                combatSo.FindProperty("currentWeapon").objectReferenceValue = weaponData;
+                combatSo.FindProperty("weaponPivot").objectReferenceValue = pivot;
+                combatSo.FindProperty("firePoint").objectReferenceValue = firePoint;
+                combatSo.FindProperty("weaponSpriteRenderer").objectReferenceValue = gSr;
+                combatSo.FindProperty("fallbackBulletPrefab").objectReferenceValue = bulletPrefab;
+                combatSo.ApplyModifiedProperties();
+            }
+
+            // 5. CẬP NHẬT OBJECT POOLER & GAME MANAGER
+            GameObject managersObj = GameObject.Find("[Managers]");
+            if (managersObj == null) managersObj = new GameObject("[Managers]");
+
+            GameManager gm = managersObj.GetComponent<GameManager>();
+            if (gm == null) gm = managersObj.AddComponent<GameManager>();
+
+            ObjectPooler pooler = managersObj.GetComponent<ObjectPooler>();
+            if (pooler == null) pooler = managersObj.AddComponent<ObjectPooler>();
+
+            SerializedObject poolSo = new SerializedObject(pooler);
+            SerializedProperty poolsProp = poolSo.FindProperty("pools");
+            poolsProp.ClearArray();
+            poolsProp.InsertArrayElementAtIndex(0);
+            SerializedProperty pool0 = poolsProp.GetArrayElementAtIndex(0);
+            pool0.FindPropertyRelative("tag").stringValue = "PlayerBullet";
+            pool0.FindPropertyRelative("prefab").objectReferenceValue = bulletPrefab;
+            pool0.FindPropertyRelative("size").intValue = 50;
+            poolSo.ApplyModifiedProperties();
+
+            // 6. TẠO HỆ THỐNG THẾ GIỚI MỞ VÔ TẬN (INFINITE WORLD MANAGER)
+            GameObject oldStaticFloor = GameObject.Find("[DungeonFloor]");
+            if (oldStaticFloor != null) Object.DestroyImmediate(oldStaticFloor);
+
+            InfiniteWorldManager worldMgr = Object.FindAnyObjectByType<InfiniteWorldManager>();
+            if (worldMgr == null)
+            {
+                GameObject wObj = new GameObject("[InfiniteWorldManager]");
+                worldMgr = wObj.AddComponent<InfiniteWorldManager>();
+            }
+            worldMgr.SetFloorSprite(floorSprite);
+
+            // 7. TẠO BỘ SINH QUÁI VẬT TỰ ĐỘNG (ENEMY SPAWNER)
+            EnemySpawner spawner = Object.FindAnyObjectByType<EnemySpawner>();
+            if (spawner == null)
+            {
+                GameObject sObj = new GameObject("[EnemySpawner]");
+                spawner = sObj.AddComponent<EnemySpawner>();
+            }
+            spawner.ClearConfigs();
+            spawner.AddEnemyConfig("Slime Quỷ", slimePrefab, 60, 0f);
+            spawner.AddEnemyConfig("Xương Ma Ám", skeletonPrefab, 30, 15f);
+            spawner.AddEnemyConfig("Quỷ Dung Nham", demonPrefab, 10, 30f);
+
+            // 8. TẠO CANVAS GIAO DIỆN HUD (ĐIỂM SỐ, KILLS, THỜI GIAN, MÁU)
+            CreateOrUpdateHudCanvas();
+
+            // 9. GẮN CAMERA THEO DÕI
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
+            {
+                CameraFollow2D camFollow = mainCam.GetComponent<CameraFollow2D>();
+                if (camFollow == null) camFollow = mainCam.gameObject.AddComponent<CameraFollow2D>();
+
+                SerializedObject camSo = new SerializedObject(camFollow);
+                camSo.FindProperty("target").objectReferenceValue = player.transform;
+                camSo.ApplyModifiedProperties();
+                mainCam.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 1f);
+            }
+
+            // Xóa các quái dummy cũ để nhường chỗ cho quái spawn tự động
+            DeleteOldDummy("Dummy_Enemy_1");
+            DeleteOldDummy("Dummy_Enemy_2");
+            DeleteOldDummy("Dummy_Enemy_3");
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             AssetDatabase.SaveAssets();
 
-            Debug.Log("<color=#FF9900><b>[RPG Setup] Đã đổi toàn bộ nhân vật sang phong cách RPG Pixel Art (Hiệp Sĩ, Slime, Bộ Xương, Quỷ Lửa)! Bấm PLAY để trải nghiệm ngay!</b></color>");
+            Debug.Log("<color=#00FF99><b>[Giai Đoạn 2] THÀNH CÔNG RỰC RỠ! Đã kích hoạt Thế Giới Mở Vô Tận, Spawner sinh quái dồn dập và HUD cộng điểm lên màn hình!</b></color>");
         }
 
-        private static void ApplySpriteToEnemy(string name, Sprite sprite, float scale, float maxHp)
+        private static void DeleteOldDummy(string name)
         {
-            GameObject enemy = GameObject.Find(name);
-            if (enemy != null && sprite != null)
-            {
-                SpriteRenderer sr = enemy.GetComponent<SpriteRenderer>();
-                if (sr != null)
-                {
-                    sr.sprite = sprite;
-                    sr.color = Color.white;
-                }
-                enemy.transform.localScale = new Vector3(scale, scale, 1f);
-
-                HealthComponent health = enemy.GetComponent<HealthComponent>();
-                if (health != null)
-                {
-                    SerializedObject hSo = new SerializedObject(health);
-                    hSo.FindProperty("maxHealth").floatValue = maxHp;
-                    hSo.FindProperty("currentHealth").floatValue = maxHp;
-                    hSo.ApplyModifiedProperties();
-                }
-            }
+            GameObject dummy = GameObject.Find(name);
+            if (dummy != null) Object.DestroyImmediate(dummy);
         }
 
-        private static void CreateDungeonFloorGrid(Sprite floorSprite)
+        private static GameObject CreateEnemyPrefab(string path, Sprite sprite, float hp, float speed, int score, float contactDmg, float scale)
         {
-            if (floorSprite == null) return;
-            GameObject oldFloor = GameObject.Find("[DungeonFloor]");
-            if (oldFloor != null) Object.DestroyImmediate(oldFloor);
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) return existing;
 
-            GameObject floorContainer = new GameObject("[DungeonFloor]");
-            floorContainer.transform.position = Vector3.zero;
+            string objName = Path.GetFileNameWithoutExtension(path);
+            GameObject obj = new GameObject(objName);
+            obj.tag = "Enemy";
 
-            int radius = 10;
-            for (int x = -radius; x <= radius; x += 2)
+            SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.sortingOrder = 9;
+            obj.transform.localScale = new Vector3(scale, scale, 1f);
+
+            var rb = obj.AddComponent<Rigidbody2D>();
+            rb.gravityScale = 0f;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+
+            var col = obj.AddComponent<CircleCollider2D>();
+            col.radius = 0.45f;
+
+            var health = obj.AddComponent<HealthComponent>();
+            SerializedObject hSo = new SerializedObject(health);
+            hSo.FindProperty("maxHealth").floatValue = hp;
+            hSo.FindProperty("currentHealth").floatValue = hp;
+            hSo.ApplyModifiedProperties();
+
+            obj.AddComponent<HitFlash>();
+
+            var dmg = obj.AddComponent<DamageOnContact>();
+            SerializedObject dmgSo = new SerializedObject(dmg);
+            dmgSo.FindProperty("damage").floatValue = contactDmg;
+            dmgSo.FindProperty("targetLayer").intValue = ~0;
+            dmgSo.ApplyModifiedProperties();
+
+            var enemyCtrl = obj.AddComponent<EnemyController>();
+            enemyCtrl.SetStats(speed, score);
+
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(obj, path);
+            Object.DestroyImmediate(obj);
+            return savedPrefab;
+        }
+
+        private static void CreateOrUpdateHudCanvas()
+        {
+            Canvas existingCanvas = Object.FindAnyObjectByType<Canvas>();
+            GameObject canvasObj;
+
+            if (existingCanvas == null)
             {
-                for (int y = -radius; y <= radius; y += 2)
-                {
-                    GameObject tile = new GameObject($"Tile_{x}_{y}");
-                    tile.transform.SetParent(floorContainer.transform, false);
-                    tile.transform.position = new Vector3(x, y, 0f);
-                    tile.transform.localScale = new Vector3(2f, 2f, 1f);
-
-                    SpriteRenderer sr = tile.AddComponent<SpriteRenderer>();
-                    sr.sprite = floorSprite;
-                    sr.sortingOrder = -10;
-                }
+                canvasObj = new GameObject("HUD_Canvas");
+                Canvas canvas = canvasObj.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
+                scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                scaler.referenceResolution = new Vector2(1920, 1080);
+                canvasObj.AddComponent<GraphicRaycaster>();
             }
+            else
+            {
+                canvasObj = existingCanvas.gameObject;
+            }
+
+            GameUIManager uiMgr = canvasObj.GetComponent<GameUIManager>();
+            if (uiMgr == null) uiMgr = canvasObj.AddComponent<GameUIManager>();
+
+            // 1. TEXT ĐIỂM SỐ (Góc trên bên phải)
+            Text scoreText = CreateTextElement(canvasObj.transform, "ScoreText", "ĐIỂM: 0", 
+                new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f), 
+                new Vector2(-150, -50), new Vector2(300, 60), 32, new Color(1f, 0.85f, 0.2f), TextAnchor.MiddleRight);
+
+            // 2. TEXT TIÊU DIỆT (Dưới Điểm số)
+            Text killsText = CreateTextElement(canvasObj.transform, "KillsText", "TIÊU DIỆT: 0", 
+                new Vector2(1, 1), new Vector2(1, 1), new Vector2(0.5f, 0.5f), 
+                new Vector2(-150, -100), new Vector2(300, 50), 24, new Color(1f, 0.4f, 0.4f), TextAnchor.MiddleRight);
+
+            // 3. TEXT THỜI GIAN (Chính giữa trên đỉnh)
+            Text timeText = CreateTextElement(canvasObj.transform, "TimeText", "THỜI GIAN: 00:00", 
+                new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(0.5f, 0.5f), 
+                new Vector2(0, -50), new Vector2(350, 60), 28, Color.white, TextAnchor.MiddleCenter);
+
+            // 4. THANH MÁU HIỆP SĨ (Góc trên bên trái)
+            Transform hpContainer = canvasObj.transform.Find("HealthBarContainer");
+            if (hpContainer == null)
+            {
+                GameObject hpObj = new GameObject("HealthBarContainer");
+                hpObj.transform.SetParent(canvasObj.transform, false);
+                hpContainer = hpObj.transform;
+            }
+            RectTransform hpRt = hpContainer.GetComponent<RectTransform>();
+            if (hpRt == null) hpRt = hpContainer.gameObject.AddComponent<RectTransform>();
+            hpRt.anchorMin = new Vector2(0, 1);
+            hpRt.anchorMax = new Vector2(0, 1);
+            hpRt.pivot = new Vector2(0, 1);
+            hpRt.anchoredPosition = new Vector2(40, -40);
+            hpRt.sizeDelta = new Vector2(320, 36);
+
+            // Nền đen thanh máu
+            Image hpBg = hpContainer.GetComponent<Image>();
+            if (hpBg == null) hpBg = hpContainer.gameObject.AddComponent<Image>();
+            hpBg.color = new Color(0.15f, 0.15f, 0.18f, 0.9f);
+
+            // Ruột đỏ thanh máu (Fill)
+            Transform hpFillTrans = hpContainer.Find("Fill");
+            if (hpFillTrans == null)
+            {
+                GameObject fObj = new GameObject("Fill");
+                fObj.transform.SetParent(hpContainer, false);
+                hpFillTrans = fObj.transform;
+            }
+            RectTransform fillRt = hpFillTrans.GetComponent<RectTransform>();
+            if (fillRt == null) fillRt = hpFillTrans.gameObject.AddComponent<RectTransform>();
+            fillRt.anchorMin = Vector2.zero;
+            fillRt.anchorMax = Vector2.one;
+            fillRt.sizeDelta = Vector2.zero;
+
+            Image fillImg = hpFillTrans.GetComponent<Image>();
+            if (fillImg == null) fillImg = hpFillTrans.gameObject.AddComponent<Image>();
+            fillImg.color = new Color(0.95f, 0.2f, 0.25f, 1f);
+            fillImg.type = Image.Type.Filled;
+            fillImg.fillMethod = Image.FillMethod.Horizontal;
+            fillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+            fillImg.fillAmount = 1f;
+
+            // Chữ hiển thị HP (HP: 100 / 100)
+            Text healthText = CreateTextElement(hpContainer, "HealthText", "HP: 100 / 100",
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(300, 30), 18, Color.white, TextAnchor.MiddleCenter);
+
+            // Gán các tham chiếu vào GameUIManager
+            SerializedObject uiSo = new SerializedObject(uiMgr);
+            uiSo.FindProperty("scoreText").objectReferenceValue = scoreText;
+            uiSo.FindProperty("killsText").objectReferenceValue = killsText;
+            uiSo.FindProperty("timeText").objectReferenceValue = timeText;
+            uiSo.FindProperty("healthBarFill").objectReferenceValue = fillImg;
+            uiSo.FindProperty("healthText").objectReferenceValue = healthText;
+            uiSo.ApplyModifiedProperties();
+        }
+
+        private static Text CreateTextElement(Transform parent, string name, string text, 
+            Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 pos, Vector2 size, int fontSize, Color color, TextAnchor align)
+        {
+            Transform tTrans = parent.Find(name);
+            if (tTrans == null)
+            {
+                GameObject obj = new GameObject(name);
+                obj.transform.SetParent(parent, false);
+                tTrans = obj.transform;
+            }
+
+            RectTransform rt = tTrans.GetComponent<RectTransform>();
+            if (rt == null) rt = tTrans.gameObject.AddComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.pivot = pivot;
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = size;
+
+            Text uiText = tTrans.GetComponent<Text>();
+            if (uiText == null) uiText = tTrans.gameObject.AddComponent<Text>();
+            uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (uiText.font == null) uiText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+            uiText.text = text;
+            uiText.fontSize = fontSize;
+            uiText.color = color;
+            uiText.alignment = align;
+            uiText.fontStyle = FontStyle.Bold;
+
+            // Đổ bóng chữ để dễ nhìn trên nền hầm ngục
+            Shadow shadow = tTrans.GetComponent<Shadow>();
+            if (shadow == null) shadow = tTrans.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0, 0, 0, 0.9f);
+            shadow.effectDistance = new Vector2(2, -2);
+
+            return uiText;
         }
 
         private static void SaveTextureAsPng(Texture2D tex, string path)
@@ -249,36 +471,23 @@ namespace DungeonGame.EditorScripts
             Object.DestroyImmediate(tex);
         }
 
-        // ================= VẼ PIXEL ART CHO TỪNG NHÂN VẬT RPG =================
-
-        // 1. HIỆP SĨ RPG (KNIGHT HERO 32x32)
+        // ================= VẼ PIXEL ART RPG =================
         private static Texture2D GenerateKnightHero()
         {
             Texture2D tex = CreateEmptyTex(32, 32);
-            Color armor = new Color(0.75f, 0.78f, 0.85f);     // Giáp sắt bạc
-            Color armorDark = new Color(0.45f, 0.48f, 0.55f); // Bóng giáp
-            Color gold = new Color(0.95f, 0.78f, 0.2f);       // Viền vàng kim
-            Color visorGlow = new Color(0.2f, 0.95f, 1f);     // Kính mắt ma thuật xanh
-            Color cape = new Color(0.85f, 0.2f, 0.25f);       // Áo choàng đỏ
-            Color boots = new Color(0.25f, 0.2f, 0.15f);      // Ủng da
+            Color armor = new Color(0.75f, 0.78f, 0.85f);
+            Color gold = new Color(0.95f, 0.78f, 0.2f);
+            Color visorGlow = new Color(0.2f, 0.95f, 1f);
+            Color cape = new Color(0.85f, 0.2f, 0.25f);
+            Color boots = new Color(0.25f, 0.2f, 0.15f);
 
-            // Áo choàng đỏ sau lưng
             FillRect(tex, 8, 4, 16, 18, cape);
-
-            // Chân & Ủng
             FillRect(tex, 10, 2, 4, 5, boots);
             FillRect(tex, 18, 2, 4, 5, boots);
-
-            // Thân giáp
             FillRect(tex, 9, 7, 14, 12, armor);
-            FillRect(tex, 11, 7, 10, 3, gold); // Đai lưng vàng
-            FillRect(tex, 14, 11, 4, 6, armorDark); // Rãnh hoa văn ngực
-
-            // Mũ giáp sắt
+            FillRect(tex, 11, 7, 10, 3, gold);
             FillRect(tex, 8, 18, 16, 12, armor);
-            FillRect(tex, 14, 29, 4, 3, gold); // Đỉnh mũ vàng hoàng gia
-
-            // Khe mắt phát sáng xanh Arcane
+            FillRect(tex, 14, 29, 4, 3, gold);
             FillRect(tex, 11, 23, 10, 3, Color.black);
             FillRect(tex, 13, 23, 2, 2, visorGlow);
             FillRect(tex, 17, 23, 2, 2, visorGlow);
@@ -287,31 +496,19 @@ namespace DungeonGame.EditorScripts
             return tex;
         }
 
-        // 2. SLIME ĐỊA NGỤC (CRIMSON DEMON SLIME 32x32)
         private static Texture2D GenerateDemonSlime()
         {
             Texture2D tex = CreateEmptyTex(32, 32);
-            Color slimeBody = new Color(0.92f, 0.2f, 0.35f);  // Gel đỏ tía
-            Color slimeDark = new Color(0.6f, 0.1f, 0.2f);    // Viền bóng
-            Color coreGlow = new Color(1f, 0.85f, 0.2f);      // Lõi năng lượng vàng
-            Color eye = Color.yellow;
-            Color pupil = Color.black;
+            Color slimeBody = new Color(0.92f, 0.2f, 0.35f);
+            Color coreGlow = new Color(1f, 0.85f, 0.2f);
 
-            // Hình dáng giọt gel
             FillCircle(tex, 16, 12, 12, slimeBody);
             FillCircle(tex, 16, 21, 6, slimeBody);
-            FillCircle(tex, 16, 26, 3, slimeDark); // Đỉnh nhọn
-
-            // Lõi phát sáng bên trong
             FillCircle(tex, 16, 13, 5, coreGlow);
-
-            // Mắt quỷ hung dữ
-            FillRect(tex, 10, 16, 4, 4, eye);
-            FillRect(tex, 18, 16, 4, 4, eye);
-            FillRect(tex, 12, 17, 2, 2, pupil);
-            FillRect(tex, 18, 17, 2, 2, pupil);
-
-            // Răng nanh nhọn
+            FillRect(tex, 10, 16, 4, 4, Color.yellow);
+            FillRect(tex, 18, 16, 4, 4, Color.yellow);
+            FillRect(tex, 12, 17, 2, 2, Color.black);
+            FillRect(tex, 18, 17, 2, 2, Color.black);
             FillRect(tex, 13, 10, 2, 2, Color.white);
             FillRect(tex, 17, 10, 2, 2, Color.white);
 
@@ -319,26 +516,17 @@ namespace DungeonGame.EditorScripts
             return tex;
         }
 
-        // 3. BỘ XƯƠNG MA ÁM (SKELETON WARRIOR 32x32)
         private static Texture2D GenerateSkeleton()
         {
             Texture2D tex = CreateEmptyTex(32, 32);
             Color bone = new Color(0.9f, 0.9f, 0.82f);
             Color darkRobe = new Color(0.2f, 0.18f, 0.28f);
-            Color voidEye = new Color(0.85f, 0.2f, 0.95f); // Mắt ma thuật tím
+            Color voidEye = new Color(0.85f, 0.2f, 0.95f);
 
-            // Áo choàng rách đen
             FillRect(tex, 8, 3, 16, 16, darkRobe);
-
-            // Xương sườn
             FillRect(tex, 12, 10, 8, 2, bone);
-            FillRect(tex, 13, 13, 6, 2, bone);
-
-            // Đầu lâu xương
             FillCircle(tex, 16, 22, 7, bone);
-            FillRect(tex, 13, 16, 6, 4, bone); // Hàm
-
-            // Hốc mắt rực lửa tím
+            FillRect(tex, 13, 16, 6, 4, bone);
             FillRect(tex, 12, 21, 3, 3, Color.black);
             FillRect(tex, 17, 21, 3, 3, Color.black);
             FillRect(tex, 13, 22, 1, 1, voidEye);
@@ -348,27 +536,17 @@ namespace DungeonGame.EditorScripts
             return tex;
         }
 
-        // 4. QUỶ LỬA DUNG NHAM (FIRE DEMON 32x32)
         private static Texture2D GenerateFireDemon()
         {
             Texture2D tex = CreateEmptyTex(32, 32);
-            Color rock = new Color(0.22f, 0.18f, 0.2f);      // Thân đá đen
-            Color lava = new Color(1f, 0.45f, 0.05f);        // Rãnh nham thạch cam
-            Color fireCore = new Color(1f, 0.9f, 0.2f);      // Lõi vàng rực
-            Color horns = new Color(0.7f, 0.15f, 0.15f);     // Sừng quỷ đỏ
+            Color rock = new Color(0.22f, 0.18f, 0.2f);
+            Color lava = new Color(1f, 0.45f, 0.05f);
+            Color horns = new Color(0.7f, 0.15f, 0.15f);
 
-            // Thân đá
             FillCircle(tex, 16, 14, 11, rock);
-
-            // Rãnh dung nham phát sáng
             FillRect(tex, 10, 12, 12, 3, lava);
-            FillRect(tex, 14, 8, 4, 10, fireCore);
-
-            // Sừng quỷ
             FillRect(tex, 7, 22, 4, 7, horns);
             FillRect(tex, 21, 22, 4, 7, horns);
-
-            // Mắt lửa
             FillRect(tex, 11, 16, 3, 3, Color.yellow);
             FillRect(tex, 18, 16, 3, 3, Color.yellow);
 
@@ -376,47 +554,32 @@ namespace DungeonGame.EditorScripts
             return tex;
         }
 
-        // 5. GẬY PHÉP THUẬT CỔ (MAGIC STAFF 32x16)
         private static Texture2D GenerateMagicStaff()
         {
             Texture2D tex = CreateEmptyTex(32, 16);
             Color wood = new Color(0.55f, 0.35f, 0.18f);
             Color gold = new Color(0.95f, 0.8f, 0.2f);
-            Color gem = new Color(0.95f, 0.2f, 0.3f);     // Viên Ruby đỏ ở đầu gậy
-            Color glow = new Color(1f, 0.7f, 0.8f);
+            Color gem = new Color(0.95f, 0.2f, 0.3f);
 
-            // Thân gậy
             FillRect(tex, 2, 7, 22, 3, wood);
-            FillRect(tex, 10, 6, 3, 5, gold); // Vòng khuyên vàng
-
-            // Đầu gậy nạm vàng
+            FillRect(tex, 10, 6, 3, 5, gold);
             FillRect(tex, 22, 4, 4, 9, gold);
-
-            // Viên ngọc đỏ phát sáng
             FillCircle(tex, 28, 8, 4, gem);
-            FillRect(tex, 28, 8, 2, 2, glow);
 
             tex.Apply();
             return tex;
         }
 
-        // 6. CẦU LỬA MA PHÁP (FIREBALL PROJECTILE 16x16)
         private static Texture2D GenerateFireballBullet()
         {
             Texture2D tex = CreateEmptyTex(16, 16);
-            Color outer = new Color(1f, 0.25f, 0.05f); // Đỏ cam
-            Color mid = new Color(1f, 0.7f, 0.1f);     // Vàng lửa
-            Color core = Color.white;                  // Lõi trắng sáng
-
-            FillCircle(tex, 8, 8, 6, outer);
-            FillCircle(tex, 8, 8, 4, mid);
-            FillCircle(tex, 8, 8, 2, core);
-
+            FillCircle(tex, 8, 8, 6, new Color(1f, 0.25f, 0.05f));
+            FillCircle(tex, 8, 8, 4, new Color(1f, 0.7f, 0.1f));
+            FillCircle(tex, 8, 8, 2, Color.white);
             tex.Apply();
             return tex;
         }
 
-        // 7. SÀN ĐÁ HẦM NGỤC (DUNGEON TILE 32x32)
         private static Texture2D GenerateDungeonFloor()
         {
             Texture2D tex = CreateEmptyTex(32, 32);
@@ -425,13 +588,9 @@ namespace DungeonGame.EditorScripts
             Color border = new Color(0.12f, 0.12f, 0.16f);
 
             FillRect(tex, 0, 0, 32, 32, stone1);
-
-            // Vân gạch đá
             FillRect(tex, 2, 2, 13, 13, stone2);
             FillRect(tex, 17, 2, 13, 13, stone2);
             FillRect(tex, 2, 17, 28, 13, stone2);
-
-            // Rãnh vữa đen
             FillRect(tex, 0, 15, 32, 2, border);
             FillRect(tex, 15, 0, 2, 16, border);
 
@@ -439,7 +598,6 @@ namespace DungeonGame.EditorScripts
             return tex;
         }
 
-        // --- CÁC HÀM TIỆN ÍCH VẼ PIXEL ---
         private static Texture2D CreateEmptyTex(int w, int h)
         {
             Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
