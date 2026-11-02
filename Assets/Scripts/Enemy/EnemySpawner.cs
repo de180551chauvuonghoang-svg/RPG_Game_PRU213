@@ -67,8 +67,8 @@ namespace DungeonGame.Enemy
 
             if (Time.time >= nextSpawnTime)
             {
-                // Kiểm tra số lượng quái hiện tại
-                int currentEnemyCount = GameObject.FindGameObjectsWithTag("Enemy").Length;
+                // Kiểm tra số lượng quái hiện tại (Type-Safe)
+                int currentEnemyCount = UnityEngine.Object.FindObjectsByType<EnemyController>(FindObjectsSortMode.None).Length;
                 if (currentEnemyCount < maxEnemiesAlive)
                 {
                     // Khi sống lâu hơn, mỗi đợt có thể spawn từ 1 đến 3 con cùng lúc

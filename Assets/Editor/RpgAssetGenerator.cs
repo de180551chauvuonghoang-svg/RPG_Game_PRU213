@@ -293,8 +293,7 @@ namespace DungeonGame.EditorScripts
             if (existing != null) return existing;
 
             string objName = Path.GetFileNameWithoutExtension(path);
-            GameObject obj = new GameObject(objName);
-            obj.tag = "Enemy";
+            try { obj.tag = "Enemy"; } catch {}
 
             SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;

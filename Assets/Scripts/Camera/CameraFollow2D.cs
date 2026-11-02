@@ -36,7 +36,12 @@ namespace DungeonGame.Cameras
 
         private void LateUpdate()
         {
-            if (target == null) return;
+            if (target == null)
+            {
+                var p = UnityEngine.Object.FindAnyObjectByType<DungeonGame.Player.PlayerController>();
+                if (p != null) target = p.transform;
+                else return;
+            }
 
             Vector3 targetPosition = target.position + offset;
 
