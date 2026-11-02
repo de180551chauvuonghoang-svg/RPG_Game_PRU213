@@ -778,7 +778,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4be28a6e78f2ebe4c9e059bcaacec02a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGame.World.UpgradeShopSpawner
-  shopPrefab: {fileID: 4113306413635866394, guid: 84b33426fd9bf524ab346b9291678285, type: 3}
+  shopPrefab: {fileID: 7027206280110968320, guid: 84b33426fd9bf524ab346b9291678285, type: 3}
   scoreMilestones: 2c010000bc020000dc050000c4090000a00f00007017000034210000e02e0000
   spawnDistance: 5
 --- !u!1 &1292274680
@@ -875,15 +875,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGame.Enemy.EnemySpawner
   enemyConfigs:
   - enemyName: "Slime Qu\u1EF7"
-    prefab: {fileID: 7185322959519855987, guid: 878864f2f27a7734d90bc3873cdd65b0, type: 3}
+    prefab: {fileID: 5464738057028231421, guid: 878864f2f27a7734d90bc3873cdd65b0, type: 3}
     spawnWeight: 60
     minSpawnTime: 0
   - enemyName: "X\u01B0\u01A1ng Ma \xC1m"
-    prefab: {fileID: 6254192632602719316, guid: 19d55896eaed259488d29ebaa1656710, type: 3}
+    prefab: {fileID: 548630676524666973, guid: 19d55896eaed259488d29ebaa1656710, type: 3}
     spawnWeight: 30
     minSpawnTime: 15
   - enemyName: "Qu\u1EF7 Dung Nham"
-    prefab: {fileID: 6070978351880950953, guid: f1fa13cbd660cf644925ecda65b4a20b, type: 3}
+    prefab: {fileID: 7120110564148077760, guid: f1fa13cbd660cf644925ecda65b4a20b, type: 3}
     spawnWeight: 10
     minSpawnTime: 30
   initialDelay: 2.5

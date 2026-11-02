@@ -151,14 +151,14 @@ namespace DungeonGame.EditorScripts
             AssetDatabase.DeleteAsset(shopPath); // Tái tạo mới để nạp đủ 4 sprite nâng cấp
             AssetDatabase.Refresh();
 
-            GameObject sObj = new GameObject("Shop_Stall");
-            SpriteRenderer sSr = sObj.AddComponent<SpriteRenderer>();
+            GameObject shopObj = new GameObject("Shop_Stall");
+            SpriteRenderer sSr = shopObj.AddComponent<SpriteRenderer>();
             sSr.sprite = shopSprite;
             sSr.sortingOrder = 8;
-            var sCol = sObj.AddComponent<CircleCollider2D>();
+            var sCol = shopObj.AddComponent<CircleCollider2D>();
             sCol.isTrigger = true;
             sCol.radius = 1.4f;
-            ShopStall stallComp = sObj.AddComponent<ShopStall>();
+            ShopStall stallComp = shopObj.AddComponent<ShopStall>();
             stallComp.SetUpgradeSprites(multiSprite, titanSprite, speedSprite, potionSprite);
 
             SerializedObject stallSo = new SerializedObject(stallComp);
@@ -168,8 +168,8 @@ namespace DungeonGame.EditorScripts
             stallSo.FindProperty("holyPotionSprite").objectReferenceValue = potionSprite;
             stallSo.ApplyModifiedProperties();
 
-            GameObject shopPrefab = PrefabUtility.SaveAsPrefabAsset(sObj, shopPath);
-            Object.DestroyImmediate(sObj);
+            GameObject shopPrefab = PrefabUtility.SaveAsPrefabAsset(shopObj, shopPath);
+            Object.DestroyImmediate(shopObj);
 
             // 3. TẠO WEAPON DATA
             string weaponPath = "Assets/Data/PistolData.asset";
@@ -329,8 +329,8 @@ namespace DungeonGame.EditorScripts
             EnemySpawner spawner = UnityEngine.Object.FindAnyObjectByType<EnemySpawner>();
             if (spawner == null)
             {
-                GameObject sObj = new GameObject("[EnemySpawner]");
-                spawner = sObj.AddComponent<EnemySpawner>();
+                GameObject spawnerObj = new GameObject("[EnemySpawner]");
+                spawner = spawnerObj.AddComponent<EnemySpawner>();
             }
             spawner.ClearConfigs();
             spawner.AddEnemyConfig("Slime Quỷ", slimePrefab, 60, 0f);
