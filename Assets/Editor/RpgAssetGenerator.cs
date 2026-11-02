@@ -32,7 +32,10 @@ namespace DungeonGame.EditorScripts
 
         private static void CheckAndGenerateRpgAssets()
         {
-            if (!File.Exists("Assets/Sprites/Hero_Knight.png"))
+            if (!File.Exists("Assets/Sprites/Hero_Knight.png") || 
+                GameObject.Find("Dummy_Enemy_1") != null || 
+                GameObject.Find("Dummy_Enemy_2") != null ||
+                UnityEngine.Object.FindAnyObjectByType<InGameHUD>() == null)
             {
                 GenerateAllRpgAssets();
                 ApplyStage2ToCurrentScene();

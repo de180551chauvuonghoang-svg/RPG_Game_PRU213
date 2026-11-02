@@ -8,6 +8,7 @@ namespace DungeonGame.Enemy
     /// <summary>
     /// Điều khiển AI quái vật: Tự động tìm đường, bám đuổi Player,
     /// xoay hướng mặt và kích hoạt cộng điểm khi bị tiêu diệt.
+    /// An toàn 100% trước MissingReferenceException.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(HealthComponent))]
     public class EnemyController : MonoBehaviour
@@ -57,13 +58,20 @@ namespace DungeonGame.Enemy
 
         private void FindPlayerTarget()
         {
-            if (playerTarget == null)
+            try
             {
-                var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
-                if (player != null)
+                if (playerTarget == null)
                 {
-                    playerTarget = player.transform;
+                    var player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
+                    if (player != null)
+                    {
+                        playerTarget = player.transform;
+                    }
                 }
+            }
+            catch (System.Exception)
+            {
+                playerTarget = null;
             }
         }
 
@@ -71,21 +79,31 @@ namespace DungeonGame.Enemy
         {
             if (isDead) return;
 
-            if (playerTarget == null)
+            try
             {
-                FindPlayerTarget();
-                return;
+                if (playerTarget == null)
+                {
+                    FindPlayerTarget();
+                    if (playerTarget == null) return;
+                }
+
+                Vector2 direction = (playerTarget.position - transform.position).normalized;
+
+#if UNITY_6000_0_OR_NEWER
+                rb.linearVelocity = direction * moveSpeed;
+#else
+                rb.velocity = direction * moveSpeed;
+#endif
+
+                // Lật mặt Sprite theo hướng chạy
+                if (spriteRenderer != null && direction.x != 0)
+                {
+                    spriteRenderer.flipX = direction.x < 0;
+                }
             }
-
-            Vector2 direction = (playerTarget.position - transform.position).normalized;
-
-            // Di chuyển đuổi theo Player
-            rb.linearVelocity = direction * moveSpeed;
-
-            // Lật mặt Sprite theo hướng chạy
-            if (spriteRenderer != null && direction.x != 0)
+            catch (System.Exception)
             {
-                spriteRenderer.flipX = direction.x < 0;
+                playerTarget = null;
             }
         }
 

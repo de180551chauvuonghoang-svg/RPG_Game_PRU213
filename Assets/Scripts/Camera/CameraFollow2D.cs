@@ -5,7 +5,7 @@ namespace DungeonGame.Cameras
 {
     /// <summary>
     /// Camera bám theo Player mượt mà (Smooth Damping) và hướng nhẹ về con trỏ chuột.
-    /// Tương thích cả Unity 6 New Input System lẫn Legacy Input.
+    /// An toàn 100% trước MissingReferenceException khi chuyển cảnh hoặc xóa đối tượng.
     /// </summary>
     public class CameraFollow2D : MonoBehaviour
     {
@@ -36,32 +36,39 @@ namespace DungeonGame.Cameras
 
         private void LateUpdate()
         {
-            if (target == null)
+            try
             {
-                var p = UnityEngine.Object.FindAnyObjectByType<DungeonGame.Player.PlayerController>();
-                if (p != null) target = p.transform;
-                else return;
+                if (target == null)
+                {
+                    var p = UnityEngine.Object.FindAnyObjectByType<DungeonGame.Player.PlayerController>();
+                    if (p != null) target = p.transform;
+                    else return;
+                }
+
+                Vector3 targetPosition = target.position + offset;
+
+                if (enableLookAhead)
+                {
+                    Vector3 mouseWorldPos = GameInput.GetMouseWorldPosition(cam);
+                    Vector3 toMouse = mouseWorldPos - target.position;
+                    toMouse.z = 0;
+
+                    Vector3 lookAhead = Vector3.ClampMagnitude(toMouse * lookAheadWeight, maxLookAheadDistance);
+                    targetPosition += lookAhead;
+                }
+
+                if (useBounds)
+                {
+                    targetPosition.x = Mathf.Clamp(targetPosition.x, minBounds.x, maxBounds.x);
+                    targetPosition.y = Mathf.Clamp(targetPosition.y, minBounds.y, maxBounds.y);
+                }
+
+                transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
             }
-
-            Vector3 targetPosition = target.position + offset;
-
-            if (enableLookAhead)
+            catch (System.Exception)
             {
-                Vector3 mouseWorldPos = GameInput.GetMouseWorldPosition(cam);
-                Vector3 toMouse = mouseWorldPos - target.position;
-                toMouse.z = 0;
-
-                Vector3 lookAhead = Vector3.ClampMagnitude(toMouse * lookAheadWeight, maxLookAheadDistance);
-                targetPosition += lookAhead;
+                target = null;
             }
-
-            if (useBounds)
-            {
-                targetPosition.x = Mathf.Clamp(targetPosition.x, minBounds.x, maxBounds.x);
-                targetPosition.y = Mathf.Clamp(targetPosition.y, minBounds.y, maxBounds.y);
-            }
-
-            transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref currentVelocity, smoothTime);
         }
 
         public void SetTarget(Transform newTarget)
