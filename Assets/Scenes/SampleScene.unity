@@ -875,15 +875,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGame.Enemy.EnemySpawner
   enemyConfigs:
   - enemyName: "Slime Qu\u1EF7"
-    prefab: {fileID: 1219207284577782620, guid: 878864f2f27a7734d90bc3873cdd65b0, type: 3}
+    prefab: {fileID: 7185322959519855987, guid: 878864f2f27a7734d90bc3873cdd65b0, type: 3}
     spawnWeight: 60
     minSpawnTime: 0
   - enemyName: "X\u01B0\u01A1ng Ma \xC1m"
-    prefab: {fileID: 166530165236811048, guid: 19d55896eaed259488d29ebaa1656710, type: 3}
+    prefab: {fileID: 6254192632602719316, guid: 19d55896eaed259488d29ebaa1656710, type: 3}
     spawnWeight: 30
     minSpawnTime: 15
   - enemyName: "Qu\u1EF7 Dung Nham"
-    prefab: {fileID: 9053783891754293342, guid: f1fa13cbd660cf644925ecda65b4a20b, type: 3}
+    prefab: {fileID: 6070978351880950953, guid: f1fa13cbd660cf644925ecda65b4a20b, type: 3}
     spawnWeight: 10
     minSpawnTime: 30
   initialDelay: 2.5

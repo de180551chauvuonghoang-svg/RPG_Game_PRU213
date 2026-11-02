@@ -94,6 +94,7 @@ namespace DungeonGame.Player
 
         private void Update()
         {
+            if (Time.timeScale <= 0f) return;
             if (playerController != null && playerController.IsDashing) return;
 
             AimWeaponAtCursor();
@@ -216,21 +217,56 @@ namespace DungeonGame.Player
             }
         }
 
+        public float BaseDamage => currentWeapon != null ? currentWeapon.damage : 35f;
+        public float CurrentDamage => BaseDamage * damageMultiplier;
+        public float NextDamage => BaseDamage * (damageMultiplier + 0.6f);
+
+        public float BaseFireRate => currentWeapon != null ? currentWeapon.fireRate : 0.16f;
+        public float CurrentFireRatePerSec => 1f / (BaseFireRate / fireRateMultiplier);
+        public float NextFireRatePerSec => 1f / (BaseFireRate / (fireRateMultiplier + 0.5f));
+
+        public int NextMultiShotCount => Mathf.Min(5, multiShotCount + 2);
+
         // --- CÁC HÀM NÂNG CẤP VŨ KHÍ TỪ GIAN HÀNG ---
-        public void UpgradeMultiShot()
+        public void UpgradeMultiShot(Sprite newWeaponSprite = null)
         {
             multiShotCount = Mathf.Min(5, multiShotCount + 2); // 1 -> 3 -> 5 tia
+            if (newWeaponSprite != null)
+            {
+                ChangeWeaponAppearance(newWeaponSprite, new Vector3(1.15f, 1.15f, 1f), "Gậy Phép Tam Xạ Phượng Hoàng");
+            }
         }
 
-        public void UpgradeDamage()
+        public void UpgradeDamage(Sprite newWeaponSprite = null)
         {
             damageMultiplier += 0.6f; // +60% sát thương
-            bulletScale += 0.25f;     // Đạn to hơn tạo cảm giác uy lực
+            bulletScale += 0.3f;      // Đạn to hơn tạo cảm giác uy lực
+            if (newWeaponSprite != null)
+            {
+                ChangeWeaponAppearance(newWeaponSprite, new Vector3(1.35f, 1.35f, 1f), "Đại Trượng Hủy Diệt Titan");
+            }
         }
 
-        public void UpgradeFireRate()
+        public void UpgradeFireRate(Sprite newWeaponSprite = null)
         {
             fireRateMultiplier += 0.5f; // Bắn nhanh hơn 50%
+            if (newWeaponSprite != null)
+            {
+                ChangeWeaponAppearance(newWeaponSprite, new Vector3(1.1f, 1.1f, 1f), "Trượng Thần Tốc Phong Lôi");
+            }
+        }
+
+        public void ChangeWeaponAppearance(Sprite newSprite, Vector3 newScale, string newWeaponName)
+        {
+            if (weaponSpriteRenderer != null && newSprite != null)
+            {
+                weaponSpriteRenderer.sprite = newSprite;
+                weaponSpriteRenderer.transform.localScale = newScale;
+            }
+            if (currentWeapon != null && !string.IsNullOrEmpty(newWeaponName))
+            {
+                currentWeapon.weaponName = newWeaponName;
+            }
         }
     }
 }

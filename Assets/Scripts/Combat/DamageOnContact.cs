@@ -26,6 +26,8 @@ namespace DungeonGame.Combat
 
         private void ApplyDamage(GameObject target)
         {
+            if (Time.timeScale <= 0f) return;
+
             if ((targetLayer.value & (1 << target.layer)) > 0)
             {
                 if (target.TryGetComponent<IDamageable>(out var damageable))
