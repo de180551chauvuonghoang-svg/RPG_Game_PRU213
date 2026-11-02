@@ -17,7 +17,7 @@ MonoBehaviour:
   damage: 35
   projectileSpeed: 16
   fireRate: 0.16
-  spreadAngle: 4
+  spreadAngle: 3.5
   knockbackForce: 9
   projectileLifetime: 3
   projectilePoolTag: PlayerBullet
