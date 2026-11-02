@@ -79,7 +79,13 @@ namespace DungeonGame.Combat
             }
 
             // 3. Va chạm với Tường / Vật cản tĩnh
-            if (collision.CompareTag("Obstacle") || collision.gameObject.layer == LayerMask.NameToLayer("Obstacles"))
+            bool isObstacle = false;
+            try { if (collision.CompareTag("Obstacle")) isObstacle = true; } catch {}
+            int obsLayer = LayerMask.NameToLayer("Obstacles");
+            if (obsLayer != -1 && collision.gameObject.layer == obsLayer) isObstacle = true;
+            if (collision.gameObject.name.Contains("Wall") || collision.gameObject.name.Contains("Obstacle")) isObstacle = true;
+
+            if (isObstacle)
             {
                 SpawnHitEffect();
                 Deactivate();
