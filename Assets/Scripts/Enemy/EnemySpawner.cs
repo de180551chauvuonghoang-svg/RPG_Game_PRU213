@@ -223,7 +223,7 @@ namespace DungeonGame.Enemy
             var enemies = UnityEngine.Object.FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             foreach (var e in enemies)
             {
-                if (e != null && !e.CompareTag("Boss") && !e.name.Contains("Boss") && !e.name.Contains("Goliath"))
+                if (e != null && e.GetComponent<BossController>() == null && !e.name.Contains("Boss") && !e.name.Contains("Goliath") && !e.name.Contains("Zeus") && !e.name.Contains("Ifrit") && !e.name.Contains("Lich"))
                 {
                     Destroy(e.gameObject);
                 }

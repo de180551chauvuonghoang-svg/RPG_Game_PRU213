@@ -220,7 +220,7 @@ namespace DungeonGame.Core
             if (amount <= 0) return;
             coins += amount;
             OnCoinsChanged?.Invoke(coins);
-            Debug.Log($"<color=yellow><b>🪙 [NHẶT COIN +{amount}] Bạn nhận được {amount} tiền vàng! Hiện có: {coins} Coin.</b></color>");
+            Debug.Log($"<color=yellow><b>★ [NHẶT COIN +{amount}] Bạn nhận được {amount} tiền vàng! Hiện có: {coins} Coin.</b></color>");
         }
 
         public bool SpendCoins(int amount)
@@ -230,7 +230,7 @@ namespace DungeonGame.Core
 
             coins -= amount;
             OnCoinsChanged?.Invoke(coins);
-            Debug.Log($"<color=yellow><b>🪙 [TIÊU COIN -{amount}] Đã thanh toán {amount} tiền vàng! Còn lại: {coins} Coin.</b></color>");
+            Debug.Log($"<color=yellow><b>★ [TIÊU COIN -{amount}] Đã thanh toán {amount} tiền vàng! Còn lại: {coins} Coin.</b></color>");
             return true;
         }
 

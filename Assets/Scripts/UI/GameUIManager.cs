@@ -410,18 +410,59 @@ namespace DungeonGame.UI
                 if (wantsRestart) RestartGame();
             }
 
-            // 3. Phím tắt khi Victory qua màn
+            // 3. Phím tắt khi Victory qua màn hoặc Phá Đảo Game
             if (state == GameState.Victory)
             {
+                int curStage = GameManager.Instance != null ? GameManager.Instance.CurrentStage : 1;
+                bool isFinalClear = curStage >= 4;
+
+                bool pressSpace = false;
+                bool pressR = false;
+                bool pressM = false;
+                bool pressEsc = false;
+
 #if ENABLE_INPUT_SYSTEM
                 if (Keyboard.current != null)
                 {
-                    if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.digit2Key.wasPressedThisFrame)
-                        GameManager.Instance.AdvanceToStage(2);
-                    else if (Keyboard.current.mKey.wasPressedThisFrame)
-                        GameManager.Instance.SetState(GameState.MainMenu);
+                    if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame) pressSpace = true;
+                    if (Keyboard.current.rKey.wasPressedThisFrame) pressR = true;
+                    if (Keyboard.current.mKey.wasPressedThisFrame) pressM = true;
+                    if (Keyboard.current.escapeKey.wasPressedThisFrame) pressEsc = true;
                 }
 #endif
+#if ENABLE_LEGACY_INPUT_MANAGER
+                try
+                {
+                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return)) pressSpace = true;
+                    if (Input.GetKeyDown(KeyCode.R)) pressR = true;
+                    if (Input.GetKeyDown(KeyCode.M)) pressM = true;
+                    if (Input.GetKeyDown(KeyCode.Escape)) pressEsc = true;
+                }
+                catch {}
+#endif
+
+                if (isFinalClear)
+                {
+                    if (pressR || pressSpace)
+                    {
+                        RestartGame();
+                    }
+                    else if (pressM || pressEsc)
+                    {
+                        GameManager.Instance.SetState(GameState.MainMenu);
+                    }
+                }
+                else
+                {
+                    if (pressSpace)
+                    {
+                        GameManager.Instance.AdvanceToStage(curStage + 1);
+                    }
+                    else if (pressM || pressEsc)
+                    {
+                        GameManager.Instance.SetState(GameState.MainMenu);
+                    }
+                }
             }
         }
 
@@ -668,7 +709,7 @@ namespace DungeonGame.UI
 
             // 1.5. Hiển thị Tiền Vàng (Coins)
             int coins = GameManager.Instance.Coins;
-            GUI.Label(new Rect(bx, by + bh + 4f, 260f, 24f), $"🪙 VÀNG: {coins:N0} COIN", coinHudStyle);
+            GUI.Label(new Rect(bx, by + bh + 4f, 260f, 24f), $"★ VÀNG: {coins:N0} COIN", coinHudStyle);
 
             // 2. Điểm & Tiêu diệt
             int score = GameManager.Instance.Score;
@@ -741,44 +782,146 @@ namespace DungeonGame.UI
         // ================= VẼ BANNER CỔNG DỊCH CHUYỂN =================
         private void DrawStageClearBanner()
         {
-            float bw = Mathf.Min(Screen.width - 40f, 760f);
-            float bh = 60f;
+            if (GameManager.Instance != null && GameManager.Instance.CurrentStage >= 4) return;
+
+            int curStage = GameManager.Instance != null ? GameManager.Instance.CurrentStage : 1;
+            string bossName = curStage switch
+            {
+                1 => "GOLIATH",
+                2 => "IFRIT",
+                3 => "FROST LICH",
+                _ => $"MÀN {curStage}"
+            };
+
+            float bw = Mathf.Min(Screen.width - 40f, 780f);
+            float bh = 64f;
             float bx = (Screen.width - bw) / 2f;
             float by = 60f;
 
             GUI.DrawTexture(new Rect(bx - 3, by - 3, bw + 6, bh + 6), borderTex);
             GUI.DrawTexture(new Rect(bx, by, bw, bh), popupBgTex);
 
-            GUI.Label(new Rect(bx, by + 6f, bw, 26f), "🎉 BOSS GOLIATH ĐÃ BỊ HẠ GỤC! QUÁI VẬT ĐÃ NGỪNG XUẤT HIỆN! 🎉", menuHeaderStyle);
-            GUI.Label(new Rect(bx, by + 32f, bw, 22f), "🌀 HÃY BƯỚC VÀO CỔNG DỊCH CHUYỂN PHÁT SÁNG ĐỂ TIẾN VÀO MÀN 2! 🌀", stageStatusStyle);
+            GUI.Label(new Rect(bx, by + 6f, bw, 26f), $"🎉 BOSS {bossName} ĐÃ BỊ HẠ GỤC! QUÁI VẬT ĐÃ NGỪNG XUẤT HIỆN! 🎉", menuHeaderStyle);
+            GUI.Label(new Rect(bx, by + 34f, bw, 22f), $"🌀 HÃY BƯỚC VÀO CỔNG DỊCH CHUYỂN PHÁT SÁNG ĐỂ TIẾN VÀO MÀN {curStage + 1}! 🌀", stageStatusStyle);
         }
 
-        // ================= VẼ BẢNG CHIẾN THẮNG VƯỢT MÀN =================
+        // ================= VẼ BẢNG CHIẾN THẮNG VƯỢT MÀN / PHÁ ĐẢO GAME =================
         private void DrawVictoryModal()
         {
-            float vw = Mathf.Min(Screen.width - 40f, 680f);
-            float vh = 420f;
+            if (GameManager.Instance != null && GameManager.Instance.CurrentStage >= 4)
+            {
+                DrawGameCompleteVictoryModal();
+            }
+            else
+            {
+                DrawStageVictoryModal();
+            }
+        }
+
+        // ================= VẼ BẢNG CHÚC MỪNG PHÁ ĐẢO GAME (MÀN 4 HOÀN THÀNH) =================
+        private void DrawGameCompleteVictoryModal()
+        {
+            float vw = Mathf.Min(Screen.width - 40f, 860f);
+            float vh = Mathf.Min(Screen.height - 30f, 630f);
+            float vx = (Screen.width - vw) / 2f;
+            float vy = (Screen.height - vh) / 2f;
+
+            // Viền hoàng kim lấp lánh và nền xanh thẫm
+            GUI.DrawTexture(new Rect(vx - 5, vy - 5, vw + 10, vh + 10), borderTex);
+            GUI.DrawTexture(new Rect(vx, vy, vw, vh), popupBgTex);
+
+            // 1. Tiêu đề Phá Đảo Game rực rỡ
+            GUI.Label(new Rect(vx, vy + 16f, vw, 40f), "👑 CHÚC MỪNG BẠN ĐÃ PHÁ ĐẢO TRÒ CHƠI! 👑", menuHeaderStyle);
+            GUI.Label(new Rect(vx, vy + 58f, vw, 26f), "✨ ĐẠI TOÀN THẮNG: ĐẬP TAN THẦN SẤM ZEUS TITAN & GIẢI CỨU THẾ GIỚI RPG! ✨", stageTitleStyle);
+            GUI.Label(new Rect(vx, vy + 88f, vw, 22f), "Đồ Án PRU213 - Sinh viên: Châu Vương Hoàng (MSSV: DE180551)", menuAuthorStyle);
+
+            // 2. Bảng thống kê toàn bộ hành trình
+            int score = GameManager.Instance.Score;
+            int kills = GameManager.Instance.KillCount;
+            int coins = GameManager.Instance.Coins;
+            float time = GameManager.Instance.SurvivalTime;
+            int min = Mathf.FloorToInt(time / 60f);
+            int sec = Mathf.FloorToInt(time % 60f);
+
+            var player = UnityEngine.Object.FindAnyObjectByType<Player.PlayerCombat>();
+            int multiLvl = player != null ? player.MultiShotLevel : 0;
+            int dmgLvl = player != null ? player.DamageLevel : 0;
+            int spdLvl = player != null ? player.FireRateLevel : 0;
+
+            float statsY = vy + 120f;
+            float rowH = 34f;
+
+            GUI.Label(new Rect(vx + 40f, statsY, vw - 80f, rowH), $"★ TỔNG ĐIỂM CHIẾN DỊCH HOÀN THÀNH: {score:N0} ĐIỂM", gameOverStatsStyle);
+            GUI.Label(new Rect(vx + 40f, statsY + rowH, vw - 80f, rowH), $"☠ TỔNG QUÁI VẬT & 4 TRÙM CUỐI TIÊU DIỆT: {kills} KẺ ĐỊCH", gameOverStatsStyle);
+            GUI.Label(new Rect(vx + 40f, statsY + rowH * 2, vw - 80f, rowH), $"★ TỔNG TIỀN VÀNG TÍCH LŨY: {coins:N0} COIN", gameOverStatsStyle);
+            GUI.Label(new Rect(vx + 40f, statsY + rowH * 3, vw - 80f, rowH), $"⏱ TỔNG THỜI GIAN VƯỢT QUA 4 MÀN: {min:00} PHÚT {sec:00} GIÂY", gameOverStatsStyle);
+            GUI.Label(new Rect(vx + 40f, statsY + rowH * 4, vw - 80f, rowH), $"⚔ CẤP VŨ KHÍ: Đa Tia [Cấp {multiLvl}/2]  |  Sát Thương [Cấp {dmgLvl}/2]  |  Tốc Độ [Cấp {spdLvl}/2]", stageStatusStyle);
+            GUI.Label(new Rect(vx + 40f, statsY + rowH * 5, vw - 80f, 38f), "🎖 DANH HIỆU: ★★★ HUYỀN THOẠI CHIẾN BINH RPG BẤT TỬ ★★★", stageBannerStyle);
+
+            // 3. Hai nút tương tác lớn
+            float btnW = vw - 120f;
+            float btnH = 58f;
+            float btnX = vx + 60f;
+            float btnY1 = vy + vh - 140f;
+            float btnY2 = vy + vh - 72f;
+
+            if (GUI.Button(new Rect(btnX, btnY1, btnW, btnH), "🔄 CHƠI LẠI TỪ ĐẦU (PHÍM 'R' / SPACE)", restartButtonStyle))
+            {
+                RestartGame();
+            }
+
+            if (GUI.Button(new Rect(btnX, btnY2, btnW, 50f), "🏠 VỀ MENU CHỌN MÀN CHƠI (PHÍM 'M' / ESC)", menuActionBtnStyle))
+            {
+                GameManager.Instance.SetState(GameState.MainMenu);
+            }
+        }
+
+        // ================= VẼ BẢNG CHIẾN THẮNG TỪNG MÀN 1, 2, 3 =================
+        private void DrawStageVictoryModal()
+        {
+            int curStage = GameManager.Instance != null ? GameManager.Instance.CurrentStage : 1;
+            int nextStage = curStage + 1;
+
+            string curTitle = curStage switch
+            {
+                1 => "MÀN 1: HẦM NGỤC HẮC ÁM",
+                2 => "MÀN 2: THÀNH TRÌ DUNG NHAM",
+                3 => "MÀN 3: VỰC BĂNG VĨNH CỬU",
+                _ => $"MÀN {curStage}"
+            };
+
+            string nextTitle = nextStage switch
+            {
+                2 => "MÀN 2: THÀNH TRÌ DUNG NHAM",
+                3 => "MÀN 3: VỰC BĂNG VĨNH CỬU",
+                4 => "MÀN 4: ĐỀN THỜ SẤM SÉT (MÀN CUỐI)",
+                _ => $"MÀN {nextStage}"
+            };
+
+            float vw = Mathf.Min(Screen.width - 40f, 720f);
+            float vh = 440f;
             float vx = (Screen.width - vw) / 2f;
             float vy = (Screen.height - vh) / 2f;
 
             GUI.DrawTexture(new Rect(vx - 4, vy - 4, vw + 8, vh + 8), borderTex);
             GUI.DrawTexture(new Rect(vx, vy, vw, vh), popupBgTex);
 
-            GUI.Label(new Rect(vx, vy + 20f, vw, 36f), "🏆 CHIẾN THẮNG MÀN 1 RỰC RỠ! 🏆", menuHeaderStyle);
-            GUI.Label(new Rect(vx, vy + 60f, vw, 26f), "Bạn đã đánh bại Chúa Tể Hầm Ngục & Mở Khóa Màn 2!", menuAuthorStyle);
+            GUI.Label(new Rect(vx, vy + 20f, vw, 36f), $"🏆 CHIẾN THẮNG {curTitle} RỰC RỠ! 🏆", menuHeaderStyle);
+            GUI.Label(new Rect(vx, vy + 60f, vw, 26f), $"Bạn đã đánh bại Trùm Cuối & Mở Khóa {nextTitle}!", menuAuthorStyle);
 
-            GUI.Label(new Rect(vx, vy + 110f, vw, 28f), $"★ Tổng Điểm Đạt Được: {GameManager.Instance.Score:N0} Điểm", gameOverStatsStyle);
-            GUI.Label(new Rect(vx, vy + 145f, vw, 28f), $"☠ Số Quái Vật Hạ Gục: {GameManager.Instance.KillCount} Con", gameOverStatsStyle);
-            GUI.Label(new Rect(vx, vy + 180f, vw, 28f), "🔥 Đã mở khóa: MÀN 2 - THÀNH TRÌ DUNG NHAM", stageTitleStyle);
+            GUI.Label(new Rect(vx, vy + 105f, vw, 28f), $"★ Tổng Điểm Đạt Được: {GameManager.Instance.Score:N0} Điểm", gameOverStatsStyle);
+            GUI.Label(new Rect(vx, vy + 138f, vw, 28f), $"☠ Số Quái Vật Hạ Gục: {GameManager.Instance.KillCount} Con", gameOverStatsStyle);
+            GUI.Label(new Rect(vx, vy + 170f, vw, 28f), $"★ Tiền Vàng Tích Lũy: {GameManager.Instance.Coins:N0} COIN", gameOverStatsStyle);
+            GUI.Label(new Rect(vx, vy + 202f, vw, 28f), $"🔥 Đã Mở Khóa: {nextTitle}", stageTitleStyle);
 
-            // Nút Tiến Vào Màn 2
-            if (GUI.Button(new Rect(vx + 60f, vy + 240f, vw - 120f, 62f), "🌋 TIẾN VÀO MÀN 2 NGAY (SPACE / '2') 🌋", restartButtonStyle))
+            // Nút Tiến Vào Màn Kế Tiếp
+            if (GUI.Button(new Rect(vx + 60f, vy + 250f, vw - 120f, 62f), $"▶ TIẾN VÀO {nextTitle} (SPACE / '{nextStage}')", restartButtonStyle))
             {
-                GameManager.Instance.AdvanceToStage(2);
+                GameManager.Instance.AdvanceToStage(nextStage);
             }
 
             // Nút Về Menu Chính
-            if (GUI.Button(new Rect(vx + 60f, vy + 315f, vw - 120f, 48f), "🏠 VỀ MENU CHỌN MÀN CHƠI (Phím 'M')", menuActionBtnStyle))
+            if (GUI.Button(new Rect(vx + 60f, vy + 325f, vw - 120f, 50f), "🏠 VỀ MENU CHỌN MÀN CHƠI (Phím 'M' / ESC)", menuActionBtnStyle))
             {
                 GameManager.Instance.SetState(GameState.MainMenu);
             }
