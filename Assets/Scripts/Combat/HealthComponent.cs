@@ -85,6 +85,20 @@ namespace DungeonGame.Combat
             lastDamageTime = Time.time - invulnerabilityDuration + duration;
         }
 
+        public void SetMaxHealth(float newMaxHealth, bool resetCurrentHealth = true)
+        {
+            maxHealth = newMaxHealth;
+            if (resetCurrentHealth)
+            {
+                currentHealth = maxHealth;
+            }
+            else
+            {
+                currentHealth = Mathf.Min(currentHealth, maxHealth);
+            }
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+
         private void Die()
         {
             OnDeath?.Invoke();
