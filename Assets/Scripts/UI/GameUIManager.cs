@@ -49,6 +49,7 @@ namespace DungeonGame.UI
         private GUIStyle stageBannerStyle;
         private GUIStyle stageBannerSubStyle;
         private GUIStyle menuGuideStyle;
+        private GUIStyle coinHudStyle;
 
         // GUIStyles
         private GUIStyle titleStyle;
@@ -167,6 +168,15 @@ namespace DungeonGame.UI
                 wordWrap = false
             };
             titleStyle.normal.textColor = Color.white;
+
+            coinHudStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = false
+            };
+            coinHudStyle.normal.textColor = new Color(1f, 0.88f, 0.2f);
 
             hpTextStyle = new GUIStyle(GUI.skin.label)
             {
@@ -652,6 +662,10 @@ namespace DungeonGame.UI
             }
             GUI.Label(new Rect(bx, by, bw, bh), $"MÁU: {Mathf.CeilToInt(curHp)} / {Mathf.CeilToInt(maxHp)} ({Mathf.RoundToInt(hpPct * 100)}%)", hpTextStyle);
 
+            // 1.5. Hiển thị Tiền Vàng (Coins)
+            int coins = GameManager.Instance.Coins;
+            GUI.Label(new Rect(bx, by + bh + 4f, 260f, 24f), $"🪙 VÀNG: {coins:N0} COIN", coinHudStyle);
+
             // 2. Điểm & Tiêu diệt
             int score = GameManager.Instance.Score;
             int kills = GameManager.Instance.KillCount;
@@ -659,7 +673,7 @@ namespace DungeonGame.UI
             int stage = GameManager.Instance.CurrentStage;
 
             float rightEdge = Screen.width - 25f;
-            string stageTitleText = stage == 2 ? "🌋 MÀN 2: DUNG NHAM" : "🏰 MÀN 1: HẦM NGỤC";
+            string stageTitleText = stage == 2 ? "🌋 MÀN 2: DUNG NHAM" : (stage == 3 ? "❄️ MÀN 3: BĂNG GIÁ" : (stage == 4 ? "⚡ MÀN 4: SẤM SÉT" : "🏰 MÀN 1: HẦM NGỤC"));
             GUI.Label(new Rect(rightEdge - 420f, 15f, 420f, 32f), $"{stageTitleText}  |  ★ {score:N0} Điểm", scoreStyle);
             GUI.Label(new Rect(rightEdge - 420f, 48f, 420f, 28f), $"☠ TIÊU DIỆT: {kills} con", killsStyle);
 
@@ -668,9 +682,16 @@ namespace DungeonGame.UI
                 GUI.Label(new Rect(rightEdge - 420f, 78f, 420f, 24f), $"👑 MỐC TRIỆU HỒI BOSS: {GameManager.Instance.BossScoreThreshold:N0} ĐIỂM", bossNoticeStyle);
             }
 
-            if (stage == 2)
+            if (stage >= 2)
             {
-                GUI.Label(new Rect(bx, by + bh + 4f, 380f, 22f), "🔥 [MÀN 2: THÀNH TRÌ DUNG NHAM]", stageBannerSubStyle);
+                string bannerSub = stage switch
+                {
+                    2 => "🔥 [MÀN 2: THÀNH TRÌ DUNG NHAM]",
+                    3 => "❄️ [MÀN 3: VỰC BĂNG VĨNH CỬU]",
+                    4 => "⚡ [MÀN 4: ĐỀN THỜ SẤM SÉT]",
+                    _ => ""
+                };
+                GUI.Label(new Rect(bx, by + bh + 28f, 380f, 22f), bannerSub, stageBannerSubStyle);
             }
 
             // 3. Đồng hồ thời gian

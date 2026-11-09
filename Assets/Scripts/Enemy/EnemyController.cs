@@ -1,6 +1,7 @@
 using DungeonGame.Combat;
 using DungeonGame.Core;
 using DungeonGame.Player;
+using DungeonGame.World;
 using UnityEngine;
 
 namespace DungeonGame.Enemy
@@ -119,7 +120,14 @@ namespace DungeonGame.Enemy
                 GameManager.Instance.RegisterKill();
             }
 
-            // 2. Sinh hiệu ứng nổ tan biến nếu có
+            // 2. Rơi đồng tiền vàng (Coin Drop): 85% cơ hội rơi 1 - 2 đồng coin
+            if (Random.value <= 0.85f)
+            {
+                int coinAmt = Random.Range(1, 3);
+                CoinPickup.Spawn(transform.position, coinAmt);
+            }
+
+            // 3. Sinh hiệu ứng nổ tan biến nếu có
             if (deathEffectPrefab != null)
             {
                 Instantiate(deathEffectPrefab, transform.position, Quaternion.identity);

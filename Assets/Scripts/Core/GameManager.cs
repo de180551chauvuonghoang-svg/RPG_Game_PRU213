@@ -45,6 +45,7 @@ namespace DungeonGame.Core
         [SerializeField] private int score = 0;
         [SerializeField] private int killCount = 0;
         [SerializeField] private float survivalTime = 0f;
+        [SerializeField] private int coins = 0;
 
         private BossController activeBoss;
         private bool isBossSpawned = false;
@@ -53,6 +54,7 @@ namespace DungeonGame.Core
         // Events
         public event Action<int> OnScoreChanged;
         public event Action<int> OnKillCountChanged;
+        public event Action<int> OnCoinsChanged;
         public event Action<float> OnSurvivalTimeChanged;
         public event Action<GameState> OnGameStateChanged;
         public event Action<BossController> OnBossSpawned;
@@ -62,6 +64,7 @@ namespace DungeonGame.Core
         public GameState CurrentState => currentState;
         public int Score => score;
         public int KillCount => killCount;
+        public int Coins => coins;
         public float SurvivalTime => survivalTime;
         public int CurrentStage => currentStage;
         public bool IsBossDefeated => isBossDefeated;
@@ -106,6 +109,10 @@ namespace DungeonGame.Core
             score = 0;
             killCount = 0;
             survivalTime = 0f;
+            if (stage == 1)
+            {
+                coins = 0;
+            }
             isBossSpawned = false;
             isBossDefeated = false;
             activeBoss = null;
@@ -133,6 +140,7 @@ namespace DungeonGame.Core
 
             OnScoreChanged?.Invoke(score);
             OnKillCountChanged?.Invoke(killCount);
+            OnCoinsChanged?.Invoke(coins);
 
             Debug.Log($"<color=green><b>[GameManager] BẮT ĐẦU MÀN {currentStage}! Mốc triệu hồi Boss: {bossScoreThreshold} điểm.</b></color>");
         }
@@ -205,6 +213,25 @@ namespace DungeonGame.Core
         {
             killCount++;
             OnKillCountChanged?.Invoke(killCount);
+        }
+
+        public void AddCoins(int amount)
+        {
+            if (amount <= 0) return;
+            coins += amount;
+            OnCoinsChanged?.Invoke(coins);
+            Debug.Log($"<color=yellow><b>🪙 [NHẶT COIN +{amount}] Bạn nhận được {amount} tiền vàng! Hiện có: {coins} Coin.</b></color>");
+        }
+
+        public bool SpendCoins(int amount)
+        {
+            if (amount <= 0) return true;
+            if (coins < amount) return false;
+
+            coins -= amount;
+            OnCoinsChanged?.Invoke(coins);
+            Debug.Log($"<color=yellow><b>🪙 [TIÊU COIN -{amount}] Đã thanh toán {amount} tiền vàng! Còn lại: {coins} Coin.</b></color>");
+            return true;
         }
 
         public void SpawnBoss()

@@ -2,6 +2,7 @@ using DungeonGame.Combat;
 using DungeonGame.Core;
 using DungeonGame.Enemy;
 using DungeonGame.Player;
+using DungeonGame.World;
 using UnityEngine;
 
 namespace DungeonGame.Enemy
@@ -189,7 +190,14 @@ namespace DungeonGame.Enemy
                 GameManager.Instance.RegisterKill();
             }
 
-            // 2. Ngừng hoàn toàn việc sinh quái và dọn dẹp các con quái phụ
+            // 2. Mưa tiền vàng của Boss (Rơi 12 đồng coin bung tỏa xung quanh)
+            for (int i = 0; i < 12; i++)
+            {
+                Vector2 scatter = Random.insideUnitCircle * 2.2f;
+                CoinPickup.Spawn(transform.position + (Vector3)scatter, 2);
+            }
+
+            // 3. Ngừng hoàn toàn việc sinh quái và dọn dẹp các con quái phụ
             var spawner = UnityEngine.Object.FindAnyObjectByType<EnemySpawner>();
             if (spawner != null)
             {

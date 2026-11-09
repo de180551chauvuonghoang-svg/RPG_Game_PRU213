@@ -126,6 +126,9 @@ namespace DungeonGame.World
             return tex;
         }
 
+        private GUIStyle coinWalletStyle;
+        private GUIStyle cardLevelBadgeStyle;
+
         private void InitStyles()
         {
             if (shopTitleStyle != null) return;
@@ -148,9 +151,18 @@ namespace DungeonGame.World
             };
             shopPauseNoticeStyle.normal.textColor = new Color(0.35f, 1f, 0.65f);
 
+            coinWalletStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 17,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                wordWrap = false
+            };
+            coinWalletStyle.normal.textColor = new Color(1f, 0.90f, 0.2f);
+
             cardTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 18,
+                fontSize = 17,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
                 wordWrap = false,
@@ -158,9 +170,18 @@ namespace DungeonGame.World
             };
             cardTitleStyle.normal.textColor = new Color(1f, 0.88f, 0.25f);
 
+            cardLevelBadgeStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft,
+                wordWrap = false
+            };
+            cardLevelBadgeStyle.normal.textColor = new Color(0.3f, 0.9f, 1f);
+
             cardStatStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 15,
+                fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft,
                 wordWrap = false,
@@ -170,7 +191,7 @@ namespace DungeonGame.World
 
             cardDescStyle = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 13,
+                fontSize = 12,
                 fontStyle = FontStyle.Italic,
                 alignment = TextAnchor.MiddleLeft,
                 wordWrap = false,
@@ -188,7 +209,7 @@ namespace DungeonGame.World
 
             upgradeBtnStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 16,
+                fontSize = 14,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -196,7 +217,7 @@ namespace DungeonGame.World
 
             closeBtnStyle = new GUIStyle(GUI.skin.button)
             {
-                fontSize = 18,
+                fontSize = 16,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
@@ -214,7 +235,7 @@ namespace DungeonGame.World
             float dist = Vector2.Distance(transform.position, playerTransform.position);
             isPlayerNearby = dist <= interactRadius;
 
-            if (isPlayerNearby && !isUsed && !isShopOpen)
+            if (isPlayerNearby && !isShopOpen)
             {
                 bool pressE = false;
 #if ENABLE_INPUT_SYSTEM
@@ -233,8 +254,8 @@ namespace DungeonGame.World
                 CloseShop();
             }
 
-            // Hỗ trợ phím tắt 1, 2, 3, 4 và ESC khi mở shop
-            if (isShopOpen && !isUsed)
+            // Hỗ trợ phím tắt 1, 2, 3, 4, Space, Escape khi mở shop
+            if (isShopOpen)
             {
 #if ENABLE_INPUT_SYSTEM
                 if (Keyboard.current != null)
@@ -243,7 +264,7 @@ namespace DungeonGame.World
                     else if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) ApplyUpgrade(2);
                     else if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) ApplyUpgrade(3);
                     else if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) ApplyUpgrade(4);
-                    else if (Keyboard.current.escapeKey.wasPressedThisFrame) CloseShop();
+                    else if (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame) CloseShop();
                 }
 #endif
 #if ENABLE_LEGACY_INPUT_MANAGER
@@ -253,7 +274,7 @@ namespace DungeonGame.World
                     else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) ApplyUpgrade(2);
                     else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) ApplyUpgrade(3);
                     else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) ApplyUpgrade(4);
-                    else if (Input.GetKeyDown(KeyCode.Escape)) CloseShop();
+                    else if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space)) CloseShop();
                 }
                 catch {}
 #endif
@@ -264,7 +285,7 @@ namespace DungeonGame.World
         {
             if (isShopOpen) return;
             isShopOpen = true;
-            Time.timeScale = 0f; // DỪNG GAME NGAY LẬP TỨC ĐỂ QUÁI VẬT BỊ ĐÓNG BĂNG
+            Time.timeScale = 0f; // DỪNG GAME ĐỂ QUÁI VẬT BỊ ĐÓNG BĂNG HOÀN TOÀN
             FindPlayer();
         }
 
@@ -280,22 +301,22 @@ namespace DungeonGame.World
             InitStyles();
 
             // 1. HIỆN GỢI Ý KHI PLAYER ĐẾN GẦN GIAN HÀNG
-            if (isPlayerNearby && !isShopOpen && !isUsed)
+            if (isPlayerNearby && !isShopOpen)
             {
-                float pw = 480f;
+                float pw = 520f;
                 float ph = 48f;
                 float px = (Screen.width - pw) / 2f;
                 float py = Screen.height - 120f;
 
-                GUI.Box(new Rect(px, py, pw, ph), "⚡ BƯỚC VÀO HOẶC NHẤN 'E' ĐỂ NÂNG CẤP VŨ KHÍ ⚡", promptStyle);
+                int curCoins = GameManager.Instance != null ? GameManager.Instance.Coins : 0;
+                GUI.Box(new Rect(px, py, pw, ph), $"⚡ NHẤN 'E' HOẶC BƯỚC VÀO ĐỂ NÂNG CẤP (BẠN CÓ: {curCoins} 🪙) ⚡", promptStyle);
             }
 
-            // 2. BẢNG NÂNG CẤP VŨ KHÍ RỘNG RÃI, ĐẸP MẮT
-            if (isShopOpen && !isUsed)
+            // 2. BẢNG NÂNG CẤP VŨ KHÍ RỘNG RÃI
+            if (isShopOpen)
             {
-                // Tự động căn chỉnh kích thước Popup cân đối với mọi độ phân giải màn hình
-                float sw = Mathf.Min(Screen.width - 40f, 1040f);
-                float sh = Mathf.Min(Screen.height - 40f, 620f);
+                float sw = Mathf.Min(Screen.width - 40f, 1060f);
+                float sh = Mathf.Min(Screen.height - 30f, 650f);
                 float sx = (Screen.width - sw) / 2f;
                 float sy = (Screen.height - sh) / 2f;
 
@@ -303,91 +324,158 @@ namespace DungeonGame.World
                 GUI.DrawTexture(new Rect(sx - 4, sy - 4, sw + 8, sh + 8), borderTex);
                 GUI.DrawTexture(new Rect(sx, sy, sw, sh), shopBgTex);
 
-                // Tiêu đề & Thông báo tạm dừng
-                GUI.Label(new Rect(sx, sy + 10f, sw, 32f), "🏪 GIAN HÀNG MA THUẬT - CHỌN 1 VŨ KHÍ NÂNG CẤP", shopTitleStyle);
-                GUI.Label(new Rect(sx, sy + 40f, sw, 22f), "⏸️ [TRÒ CHƠI ĐÃ TẠM DỪNG] Quái vật bị đóng băng 100% - Bạn an toàn tuyệt đối!", shopPauseNoticeStyle);
+                int playerCoins = GameManager.Instance != null ? GameManager.Instance.Coins : 0;
+
+                // Tiêu đề & Thông báo túi tiền vàng
+                GUI.Label(new Rect(sx, sy + 10f, sw, 30f), "🏪 GIAN HÀNG MA THUẬT - NÂNG CẤP VŨ KHÍ RPG", shopTitleStyle);
+                GUI.Label(new Rect(sx, sy + 38f, sw, 22f), $"⏸️ [GAME TẠM DỪNG]  •  🪙 TÚI TIỀN CỦA BẠN: {playerCoins:N0} COIN  •  (Tối đa Level 2)", coinWalletStyle);
 
                 float cardX = sx + 20f;
                 float cardW = sw - 40f;
-                float cardH = 112f;
-                float startY = sy + 68f;
-                float gapY = 124f;
+                float cardH = 110f;
+                float startY = sy + 66f;
+                float gapY = 118f;
 
                 // Dữ liệu chỉ số hiện tại
                 int curShots = playerCombat != null ? playerCombat.MultiShotCount : 1;
-                int nextShots = playerCombat != null ? playerCombat.NextMultiShotCount : 3;
-
                 float curDmg = playerCombat != null ? playerCombat.CurrentDamage : 35f;
-                float nextDmg = playerCombat != null ? playerCombat.NextDamage : 56f;
-
                 float curRate = playerCombat != null ? playerCombat.CurrentFireRatePerSec : 6.2f;
-                float nextRate = playerCombat != null ? playerCombat.NextFireRatePerSec : 9.3f;
 
                 float curHp = playerHealth != null ? playerHealth.CurrentHealth : 100f;
                 float maxHp = playerHealth != null ? playerHealth.MaxHealth : 100f;
 
-                // ================= CARD 1: BẮN 3 TIA / 5 TIA =================
+                // ================= CARD 1: BẮN ĐA TIA (MULTI-SHOT) =================
+                int multiLvl = playerCombat != null ? playerCombat.MultiShotLevel : 0;
+                bool isMultiMaxed = playerCombat != null && playerCombat.IsMultiShotMaxed;
+                int multiCost = playerCombat != null ? playerCombat.GetUpgradeCost(multiLvl) : 15;
+                bool canAffordMulti = playerCoins >= multiCost && !isMultiMaxed;
+
+                string multiBadge = isMultiMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {multiLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {multiLvl + 1} (GIÁ: {multiCost} 🪙)";
+                string multiStats = isMultiMaxed 
+                    ? $"👑 ĐÃ ĐẠT CỰC ĐẠI: [5 TIA CÁNH QUẠT]  |  Tổng sát thương: {curDmg:F0} x 5 = {curDmg * 5:F0} DMG" 
+                    : $"⚡ Số tia đạn: [{curShots} tia] ➔ [{(multiLvl == 0 ? 3 : 5)} tia cánh quạt]  |  Tổng DMG: {curDmg:F0} x {(multiLvl == 0 ? 3 : 5)} = {curDmg * (multiLvl == 0 ? 3 : 5):F0}";
+                string multiBtn = isMultiMaxed 
+                    ? "👑 ĐÃ ĐẠT TỐI ĐA\n(MAX LEVEL)" 
+                    : (canAffordMulti ? $"✨ NÂNG CẤP ({multiCost} 🪙) ✨\n(Phím 1)" : $"❌ THIẾU COIN ({multiCost} 🪙)\n(Phím 1)");
+
                 DrawUpgradeCard(
                     new Rect(cardX, startY, cardW, cardH),
                     multiShotSprite,
-                    "🏹 HỎA LONG TAM XẠ  •  [Trượng 3 Nhánh Thần Hỏa]",
-                    $"⚡ Số tia đạn: [{curShots} tia] ➔ [{nextShots} tia cánh quạt]  |  Tổng sát thương: {curDmg:F0} x {nextShots} = {curDmg * nextShots:F0} DMG",
+                    "🏹 HỎA LONG PHÂN XẠ  •  [Trượng Thần Hỏa]",
+                    multiBadge,
+                    multiStats,
                     "Phủ hỏa lực cánh quạt diện rộng, càn quét toàn bộ đàn quái vật bao vây xung quanh!",
-                    "CHỌN [1]",
+                    multiBtn,
+                    canAffordMulti && !isMultiMaxed,
                     () => ApplyUpgrade(1)
                 );
 
                 // ================= CARD 2: CỰC ĐẠI SÁT THƯƠNG =================
+                int dmgLvl = playerCombat != null ? playerCombat.DamageLevel : 0;
+                bool isDmgMaxed = playerCombat != null && playerCombat.IsDamageMaxed;
+                int dmgCost = playerCombat != null ? playerCombat.GetUpgradeCost(dmgLvl) : 15;
+                bool canAffordDmg = playerCoins >= dmgCost && !isDmgMaxed;
+
+                string dmgBadge = isDmgMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {dmgLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {dmgLvl + 1} (GIÁ: {dmgCost} 🪙)";
+                float nextDmgVal = playerCombat != null ? playerCombat.NextDamage : curDmg * 1.6f;
+                string dmgStats = isDmgMaxed 
+                    ? $"👑 ĐÃ ĐẠT CỰC ĐẠI: +120% DMG [{curDmg:F0} DMG/phát]  |  Đạn Titan bộc phá x1.7" 
+                    : $"⚡ Sát thương mỗi phát: [{curDmg:F0} DMG] ➔ [{nextDmgVal:F0} DMG] (+60% DMG)  |  Đạn to hơn";
+                string dmgBtn = isDmgMaxed 
+                    ? "👑 ĐÃ ĐẠT TỐI ĐA\n(MAX LEVEL)" 
+                    : (canAffordDmg ? $"✨ NÂNG CẤP ({dmgCost} 🪙) ✨\n(Phím 2)" : $"❌ THIẾU COIN ({dmgCost} 🪙)\n(Phím 2)");
+
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY, cardW, cardH),
                     damageSprite,
                     "💥 CỰC ĐẠI SÁT THƯƠNG  •  [Đại Trượng Hủy Diệt Titan]",
-                    $"⚡ Sát thương mỗi phát: [{curDmg:F0} DMG] ➔ [{nextDmg:F0} DMG] (+60% Dame)  |  Đạn to x1.5",
+                    dmgBadge,
+                    dmgStats,
                     "Thân hắc thạch titan to lớn, bắn đại hỏa cầu khổng lồ thổi bay mọi kẻ địch!",
-                    "CHỌN [2]",
+                    dmgBtn,
+                    canAffordDmg && !isDmgMaxed,
                     () => ApplyUpgrade(2)
                 );
 
                 // ================= CARD 3: TỐC ĐỘ BẮN LIÊN HỒI =================
+                int spdLvl = playerCombat != null ? playerCombat.FireRateLevel : 0;
+                bool isSpdMaxed = playerCombat != null && playerCombat.IsFireRateMaxed;
+                int spdCost = playerCombat != null ? playerCombat.GetUpgradeCost(spdLvl) : 15;
+                bool canAffordSpd = playerCoins >= spdCost && !isSpdMaxed;
+
+                string spdBadge = isSpdMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {spdLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {spdLvl + 1} (GIÁ: {spdCost} 🪙)";
+                float nextRateVal = playerCombat != null ? playerCombat.NextFireRatePerSec : curRate * 1.5f;
+                string spdStats = isSpdMaxed 
+                    ? $"👑 ĐÃ ĐẠT CỰC ĐẠI: +100% TỐC ĐỘ [{curRate:F1} viên/s]  |  Xả đạn bão táp liên hoàn" 
+                    : $"⚡ Tốc độ xả đạn: [{curRate:F1} viên/s] ➔ [{nextRateVal:F1} viên/s] (+50% Tốc độ bắn)";
+                string spdBtn = isSpdMaxed 
+                    ? "👑 ĐÃ ĐẠT TỐI ĐA\n(MAX LEVEL)" 
+                    : (canAffordSpd ? $"✨ NÂNG CẤP ({spdCost} 🪙) ✨\n(Phím 3)" : $"❌ THIẾU COIN ({spdCost} 🪙)\n(Phím 3)");
+
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY * 2, cardW, cardH),
                     speedSprite,
                     "⚡ PHONG BẠO TỐC ĐỘ  •  [Trượng Thần Tốc Phong Lôi]",
-                    $"⚡ Tốc độ xả đạn: [{curRate:F1} viên/s] ➔ [{nextRate:F1} viên/s] (+50% Tốc độ bắn)",
+                    spdBadge,
+                    spdStats,
                     "Cánh thiên thần mạ vàng thanh thoát, xả đạn như bão táp quét sạch kẻ địch trong chớp mắt!",
-                    "CHỌN [3]",
+                    spdBtn,
+                    canAffordSpd && !isSpdMaxed,
                     () => ApplyUpgrade(3)
                 );
 
                 // ================= CARD 4: HỒI PHỤC ĐẦY MÁU =================
+                int potionCost = 10;
+                bool isHpFull = curHp >= maxHp;
+                bool canAffordPotion = playerCoins >= potionCost && !isHpFull;
+
+                string potionBadge = isHpFull ? "💚 TRẠNG THÁI: SINH LỰC ĐẦY ĐỦ 100%" : $"💖 TIÊN DƯỢC CỨU SINH (GIÁ: {potionCost} 🪙)";
+                string potionStats = $"⚡ Sinh mệnh hiệp sĩ: [{curHp:F0}/{maxHp:F0} HP] ➔ [HỒI PHỤC 100% ĐẦY BÌNH MÁU]";
+                string potionBtn = isHpFull 
+                    ? "💚 MÁU ĐÃ ĐẦY 100%\n(Không cần hồi)" 
+                    : (canAffordPotion ? $"💖 HỒI MÁU ({potionCost} 🪙)\n(Phím 4)" : $"❌ THIẾU COIN ({potionCost} 🪙)\n(Phím 4)");
+
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY * 3, cardW, cardH),
                     holyPotionSprite,
                     "💖 THÁNH THỦY HỒI PHỤC  •  [Tiên Dược Thánh Hoàng Gia]",
-                    $"⚡ Sinh mệnh hiệp sĩ: [{curHp:F0}/{maxHp:F0} HP] ➔ [HỒI PHỤC 100% ĐẦY BÌNH MÁU]",
+                    potionBadge,
+                    potionStats,
                     "Bình tiên dược cứu sinh khẩn cấp, lập tức hồi phục đầy đủ 100% lượng máu của hiệp sĩ!",
-                    "CHỌN [4]",
+                    potionBtn,
+                    canAffordPotion && !isHpFull,
                     () => ApplyUpgrade(4)
                 );
 
-                // Nút đóng góc trên
-                if (GUI.Button(new Rect(sx + sw - 46f, sy + 10f, 36f, 32f), "X", closeBtnStyle))
+                // Nút hoàn tất mua sắm / Tiếp tục chiến đấu ở đáy popup
+                float finishBtnW = 380f;
+                float finishBtnH = 40f;
+                float finishBtnX = sx + (sw - finishBtnW) / 2f;
+                float finishBtnY = sy + sh - 48f;
+
+                if (GUI.Button(new Rect(finishBtnX, finishBtnY, finishBtnW, finishBtnH), "⚔️ TIẾP TỤC CHIẾN ĐẤU (SPACE / ESC) ⚔️", closeBtnStyle))
+                {
+                    CloseShop();
+                }
+
+                // Nút đóng 'X' góc trên bên phải
+                if (GUI.Button(new Rect(sx + sw - 44f, sy + 10f, 34f, 30f), "X", closeBtnStyle))
                 {
                     CloseShop();
                 }
             }
         }
 
-        private void DrawUpgradeCard(Rect rect, Sprite iconSprite, string headerLine, string statsLine, string descLine, string shortcutKey, System.Action onSelect)
+        private void DrawUpgradeCard(Rect rect, Sprite iconSprite, string headerLine, string levelBadge, string statsLine, string descLine, string btnText, bool isEnabled, System.Action onSelect)
         {
             // 1. Nền Card & Viền
             GUI.DrawTexture(new Rect(rect.x - 1, rect.y - 1, rect.width + 2, rect.height + 2), cardBorderTex);
             GUI.DrawTexture(rect, cardBgTex);
 
             // 2. Khung Icon Vũ Khí (Bên trái) - Khung 106x86 px
-            Rect iconBorder = new Rect(rect.x + 12f, rect.y + 13f, 108f, 86f);
+            Rect iconBorder = new Rect(rect.x + 12f, rect.y + 12f, 106f, 86f);
             GUI.DrawTexture(iconBorder, iconBorderTex);
-            Rect iconBox = new Rect(rect.x + 14f, rect.y + 15f, 104f, 82f);
+            Rect iconBox = new Rect(rect.x + 14f, rect.y + 14f, 102f, 82f);
             GUI.DrawTexture(iconBox, iconBgTex);
 
             if (iconSprite != null && iconSprite.texture != null)
@@ -397,59 +485,85 @@ namespace DungeonGame.World
             }
 
             // 3. Nút Chọn Nâng Cấp (Bên phải)
-            float btnW = 150f;
-            float btnH = 66f;
+            float btnW = 180f;
+            float btnH = 68f;
             float btnX = rect.x + rect.width - btnW - 14f;
-            float btnY = rect.y + 23f;
+            float btnY = rect.y + 21f;
 
-            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), $"✨ NÂNG CẤP ✨\n({shortcutKey})", upgradeBtnStyle))
+            GUI.enabled = isEnabled;
+            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), btnText, upgradeBtnStyle))
             {
                 onSelect?.Invoke();
             }
+            GUI.enabled = true;
 
-            // 4. Khối Thông Tin & Chỉ Số (Ở giữa) - Chiều rộng tính tự động, không bao giờ đè chữ
-            float infoX = rect.x + 132f;
+            // 4. Khối Thông Tin & Chỉ Số (Ở giữa)
+            float infoX = rect.x + 130f;
             float infoW = btnX - infoX - 12f;
 
-            // Dòng 1: Tiêu đề vũ khí & Tên ngoại hình mới (Riêng biệt, cao 26px)
-            GUI.Label(new Rect(infoX, rect.y + 12f, infoW, 26f), headerLine, cardTitleStyle);
+            // Dòng 1: Tiêu đề vũ khí
+            GUI.Label(new Rect(infoX, rect.y + 8f, infoW, 24f), headerLine, cardTitleStyle);
 
-            // Dòng 2: Chỉ số Thuộc tính So sánh (Trước ➔ Sau) (Riêng biệt, cao 24px)
-            GUI.Label(new Rect(infoX, rect.y + 42f, infoW, 24f), statsLine, cardStatStyle);
+            // Dòng 2: Cấp độ nâng cấp & Giá
+            GUI.Label(new Rect(infoX, rect.y + 32f, infoW, 22f), levelBadge, cardLevelBadgeStyle);
 
-            // Dòng 3: Mô tả Hiệu Quả Chiến Đấu (Riêng biệt, cao 22px)
-            GUI.Label(new Rect(infoX, rect.y + 70f, infoW, 22f), descLine, cardDescStyle);
+            // Dòng 3: Chỉ số Thuộc tính So sánh (Trước ➔ Sau)
+            GUI.Label(new Rect(infoX, rect.y + 55f, infoW, 22f), statsLine, cardStatStyle);
+
+            // Dòng 4: Mô tả Hiệu Quả Chiến Đấu
+            GUI.Label(new Rect(infoX, rect.y + 78f, infoW, 22f), descLine, cardDescStyle);
         }
 
         private void ApplyUpgrade(int option)
         {
             if (playerCombat == null || playerHealth == null) FindPlayer();
+            if (GameManager.Instance == null) return;
 
             switch (option)
             {
                 case 1:
-                    if (playerCombat != null) playerCombat.UpgradeMultiShot(multiShotSprite);
+                    if (playerCombat != null && !playerCombat.IsMultiShotMaxed)
+                    {
+                        int cost = playerCombat.GetUpgradeCost(playerCombat.MultiShotLevel);
+                        if (GameManager.Instance.SpendCoins(cost))
+                        {
+                            playerCombat.UpgradeMultiShot(multiShotSprite);
+                        }
+                    }
                     break;
+
                 case 2:
-                    if (playerCombat != null) playerCombat.UpgradeDamage(damageSprite);
+                    if (playerCombat != null && !playerCombat.IsDamageMaxed)
+                    {
+                        int cost = playerCombat.GetUpgradeCost(playerCombat.DamageLevel);
+                        if (GameManager.Instance.SpendCoins(cost))
+                        {
+                            playerCombat.UpgradeDamage(damageSprite);
+                        }
+                    }
                     break;
+
                 case 3:
-                    if (playerCombat != null) playerCombat.UpgradeFireRate(speedSprite);
+                    if (playerCombat != null && !playerCombat.IsFireRateMaxed)
+                    {
+                        int cost = playerCombat.GetUpgradeCost(playerCombat.FireRateLevel);
+                        if (GameManager.Instance.SpendCoins(cost))
+                        {
+                            playerCombat.UpgradeFireRate(speedSprite);
+                        }
+                    }
                     break;
+
                 case 4:
-                    if (playerHealth != null) playerHealth.Heal(100f);
+                    if (playerHealth != null && playerHealth.CurrentHealth < playerHealth.MaxHealth)
+                    {
+                        if (GameManager.Instance.SpendCoins(10))
+                        {
+                            playerHealth.Heal(100f);
+                        }
+                    }
                     break;
             }
-
-            isUsed = true;
-            CloseShop(); // UNPAUSE VÀ TIẾP TỤC CHƠI
-
-            // Đổi màu gian hàng sang màu xám sau khi mua xong
-            SpriteRenderer sr = GetComponent<SpriteRenderer>();
-            if (sr != null) sr.color = new Color(0.5f, 0.5f, 0.6f, 0.7f);
-
-            // Tự hủy gian hàng sau 5 giây để dọn map
-            Destroy(gameObject, 5f);
         }
     }
 }

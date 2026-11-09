@@ -26,10 +26,25 @@ namespace DungeonGame.Player
         [SerializeField] private GameObject fallbackBulletPrefab;
 
         [Header("Chỉ số Nâng Cấp Vũ Khí")]
-        [SerializeField] private int multiShotCount = 1;       // 1 = Bắn 1 tia, 3 = Bắn chùm 3 tia cánh quạt
-        [SerializeField] private float damageMultiplier = 1f;   // Nhân sát thương (1x, 1.6x, 2.5x...)
-        [SerializeField] private float fireRateMultiplier = 1f; // Nhân tốc độ bắn (càng cao bắn càng nhanh)
+        [SerializeField] private int multiShotCount = 1;       // 1 = Bắn 1 tia, 3 = Bắn chùm 3 tia, 5 = Bắn 5 tia
+        [SerializeField] private float damageMultiplier = 1f;   // Nhân sát thương (1x, 1.6x, 2.2x...)
+        [SerializeField] private float fireRateMultiplier = 1f; // Nhân tốc độ bắn (1x, 1.5x, 2.0x...)
         [SerializeField] private float bulletScale = 1f;        // Kích thước viên đạn
+
+        [Header("Cấp độ Nâng Cấp (Level 0 -> 1 -> 2 Tối đa)")]
+        [SerializeField] private int multiShotLevel = 0;
+        [SerializeField] private int damageLevel = 0;
+        [SerializeField] private int fireRateLevel = 0;
+
+        public const int MAX_UPGRADE_LEVEL = 2;
+
+        public int MultiShotLevel => multiShotLevel;
+        public int DamageLevel => damageLevel;
+        public int FireRateLevel => fireRateLevel;
+
+        public bool IsMultiShotMaxed => multiShotLevel >= MAX_UPGRADE_LEVEL;
+        public bool IsDamageMaxed => damageLevel >= MAX_UPGRADE_LEVEL;
+        public bool IsFireRateMaxed => fireRateLevel >= MAX_UPGRADE_LEVEL;
 
         private float nextFireTime = 0f;
         private Camera mainCamera;
@@ -219,41 +234,70 @@ namespace DungeonGame.Player
 
         public float BaseDamage => currentWeapon != null ? currentWeapon.damage : 35f;
         public float CurrentDamage => BaseDamage * damageMultiplier;
-        public float NextDamage => BaseDamage * (damageMultiplier + 0.6f);
+        public float NextDamage => BaseDamage * (1f + ((damageLevel + 1) * 0.6f));
 
         public float BaseFireRate => currentWeapon != null ? currentWeapon.fireRate : 0.16f;
         public float CurrentFireRatePerSec => 1f / (BaseFireRate / fireRateMultiplier);
-        public float NextFireRatePerSec => 1f / (BaseFireRate / (fireRateMultiplier + 0.5f));
+        public float NextFireRatePerSec => 1f / (BaseFireRate / (1f + ((fireRateLevel + 1) * 0.5f)));
 
-        public int NextMultiShotCount => Mathf.Min(5, multiShotCount + 2);
+        public int NextMultiShotCount => multiShotLevel == 0 ? 3 : 5;
+
+        public int GetUpgradeCost(int currentLevel)
+        {
+            if (currentLevel >= MAX_UPGRADE_LEVEL) return 0;
+            // Level 0 -> Level 1: 15 coins
+            // Level 1 -> Level 2 (MAX): 35 coins (mỗi cấp tốn nhiều coin hơn rõ rệt)
+            return currentLevel == 0 ? 15 : 35;
+        }
 
         // --- CÁC HÀM NÂNG CẤP VŨ KHÍ TỪ GIAN HÀNG ---
-        public void UpgradeMultiShot(Sprite newWeaponSprite = null)
+        public bool UpgradeMultiShot(Sprite newWeaponSprite = null)
         {
-            multiShotCount = Mathf.Min(5, multiShotCount + 2); // 1 -> 3 -> 5 tia
+            if (multiShotLevel >= MAX_UPGRADE_LEVEL) return false;
+
+            multiShotLevel++;
+            multiShotCount = multiShotLevel == 1 ? 3 : 5;
+
             if (newWeaponSprite != null)
             {
-                ChangeWeaponAppearance(newWeaponSprite, new Vector3(1.15f, 1.15f, 1f), "Gậy Phép Tam Xạ Phượng Hoàng");
+                string title = multiShotLevel == 1 ? "Gậy Phép Tam Xạ Phượng Hoàng (Lv1)" : "Bát Hoang Ngũ Xạ Thần Trượng (Lv2 MAX)";
+                float sc = multiShotLevel == 1 ? 1.15f : 1.30f;
+                ChangeWeaponAppearance(newWeaponSprite, new Vector3(sc, sc, 1f), title);
             }
+            return true;
         }
 
-        public void UpgradeDamage(Sprite newWeaponSprite = null)
+        public bool UpgradeDamage(Sprite newWeaponSprite = null)
         {
-            damageMultiplier += 0.6f; // +60% sát thương
-            bulletScale += 0.3f;      // Đạn to hơn tạo cảm giác uy lực
+            if (damageLevel >= MAX_UPGRADE_LEVEL) return false;
+
+            damageLevel++;
+            damageMultiplier = 1f + (damageLevel * 0.6f); // 1.0 -> 1.6 -> 2.2
+            bulletScale = 1f + (damageLevel * 0.35f);     // 1.0 -> 1.35 -> 1.7
+
             if (newWeaponSprite != null)
             {
-                ChangeWeaponAppearance(newWeaponSprite, new Vector3(1.35f, 1.35f, 1f), "Đại Trượng Hủy Diệt Titan");
+                string title = damageLevel == 1 ? "Đại Trượng Hủy Diệt Titan (Lv1)" : "Thần Trượng Hỗn Diệt Thái Cổ (Lv2 MAX)";
+                float sc = damageLevel == 1 ? 1.35f : 1.55f;
+                ChangeWeaponAppearance(newWeaponSprite, new Vector3(sc, sc, 1f), title);
             }
+            return true;
         }
 
-        public void UpgradeFireRate(Sprite newWeaponSprite = null)
+        public bool UpgradeFireRate(Sprite newWeaponSprite = null)
         {
-            fireRateMultiplier += 0.5f; // Bắn nhanh hơn 50%
+            if (fireRateLevel >= MAX_UPGRADE_LEVEL) return false;
+
+            fireRateLevel++;
+            fireRateMultiplier = 1f + (fireRateLevel * 0.5f); // 1.0 -> 1.5 -> 2.0
+
             if (newWeaponSprite != null)
             {
-                ChangeWeaponAppearance(newWeaponSprite, new Vector3(1.1f, 1.1f, 1f), "Trượng Thần Tốc Phong Lôi");
+                string title = fireRateLevel == 1 ? "Trượng Thần Tốc Phong Lôi (Lv1)" : "Lôi Quang Siêu Tốc Thần Trượng (Lv2 MAX)";
+                float sc = fireRateLevel == 1 ? 1.1f : 1.25f;
+                ChangeWeaponAppearance(newWeaponSprite, new Vector3(sc, sc, 1f), title);
             }
+            return true;
         }
 
         public void ChangeWeaponAppearance(Sprite newSprite, Vector3 newScale, string newWeaponName)

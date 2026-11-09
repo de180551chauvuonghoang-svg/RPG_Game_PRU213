@@ -36,6 +36,7 @@ namespace DungeonGame.EditorScripts
                 !File.Exists("Assets/Sprites/Boss_Fireball.png") ||
                 !File.Exists("Assets/Sprites/Stage_Portal.png") ||
                 !File.Exists("Assets/Sprites/Dungeon_Floor_Lava.png") ||
+                !File.Exists("Assets/Sprites/Item_Coin.png") ||
                 !File.Exists("Assets/Prefabs/Boss_Goliath.prefab") ||
                 !File.Exists("Assets/Prefabs/Boss_InfernalIfrit.prefab") ||
                 !File.Exists("Assets/Prefabs/Boss_Fireball.prefab") ||
@@ -79,11 +80,12 @@ namespace DungeonGame.EditorScripts
             SaveTextureAsPng(GenerateMagicStaff48(), "Assets/Sprites/Weapon_Staff.png");
             SaveTextureAsPng(GenerateFireballBullet32(), "Assets/Sprites/Magic_Bullet.png");
 
-            // 4. Tạo Sprite 4 Phiên Bản Vũ Khí Nâng Cấp Thần Thoại Mới
+            // 4. Tạo Sprite 4 Phiên Bản Vũ Khí Nâng Cấp Thần Thoại & Đồng Tiền Vàng
             SaveTextureAsPng(GenerateMultiStaff48(), "Assets/Sprites/Weapon_Staff_Multi.png");
             SaveTextureAsPng(GenerateTitanStaff48(), "Assets/Sprites/Weapon_Staff_Titan.png");
             SaveTextureAsPng(GenerateSpeedStaff48(), "Assets/Sprites/Weapon_Staff_Speed.png");
             SaveTextureAsPng(GenerateHolyPotion32(), "Assets/Sprites/Item_HolyPotion.png");
+            SaveTextureAsPng(GenerateGoldCoin32(), "Assets/Sprites/Item_Coin.png");
 
             AssetDatabase.Refresh();
 
@@ -108,6 +110,7 @@ namespace DungeonGame.EditorScripts
             ConfigureSpriteImport("Assets/Sprites/Weapon_Staff_Titan.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Weapon_Staff_Speed.png", 32);
             ConfigureSpriteImport("Assets/Sprites/Item_HolyPotion.png", 32);
+            ConfigureSpriteImport("Assets/Sprites/Item_Coin.png", 32);
 
             AssetDatabase.Refresh();
         }
@@ -1425,6 +1428,42 @@ namespace DungeonGame.EditorScripts
             FillCircle(tex, 26, 16, 3, flameOuter);
             FillCircle(tex, 16, 6, 3, flameMid);
             FillCircle(tex, 16, 26, 3, flameMid);
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// Đồng Tiền Vàng Pixel Art (Gold Coin) 32x32:
+        /// Viền vàng kim óng ánh, lõi chạm khắc hoa văn kim cương lấp lánh
+        /// </summary>
+        private static Texture2D GenerateGoldCoin32()
+        {
+            Texture2D tex = CreateEmptyTex(32, 32);
+
+            Color goldShadow = new Color(0.55f, 0.35f, 0.05f);
+            Color goldBase = new Color(0.92f, 0.70f, 0.12f);
+            Color goldBright = new Color(1f, 0.88f, 0.25f);
+            Color goldGlint = new Color(1f, 0.98f, 0.65f);
+            Color gemCore = new Color(1f, 0.60f, 0.10f);
+
+            // Viền bóng dưới
+            FillCircle(tex, 16, 16, 13, goldShadow);
+            // Thân đồng xu vàng
+            FillCircle(tex, 16, 16, 11, goldBase);
+            // Viền gờ nổi bên trong
+            FillCircle(tex, 16, 17, 9, goldBright);
+            FillCircle(tex, 16, 16, 7, goldBase);
+
+            // Biểu tượng Kim Cương / Ngôi sao lấp lánh ở giữa
+            FillCircle(tex, 16, 16, 5, gemCore);
+            FillRect(tex, 15, 12, 3, 9, goldBright);
+            FillRect(tex, 12, 15, 9, 3, goldBright);
+            FillCircle(tex, 16, 16, 2, Color.white);
+
+            // Vệt sáng phản chiếu góc trên bên trái
+            FillCircle(tex, 12, 21, 2, goldGlint);
+            FillCircle(tex, 13, 20, 1, Color.white);
 
             tex.Apply();
             return tex;
