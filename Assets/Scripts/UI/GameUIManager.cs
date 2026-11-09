@@ -538,8 +538,7 @@ namespace DungeonGame.UI
             GUI.DrawTexture(new Rect(0, 0, sw, headerH), menuHeaderBgTex);
             GUI.DrawTexture(new Rect(0, headerH - 3, sw, 3), goldLineTex); // Đường viền chỉ vàng kim óng ánh
 
-            GUI.Label(new Rect(0, 12f, sw, 38f), "⚔️ CHIẾN BINH RPG: HẦM NGỤC HUYỀN THOẠI ⚔️", menuHeaderStyle);
-            GUI.Label(new Rect(0, 52f, sw, 22f), "Đồ Án PRU213 - Sinh viên: Châu Vương Hoàng (MSSV: DE180551)", menuAuthorStyle);
+            GUI.Label(new Rect(0, 24f, sw, 40f), "⚔️ CHIẾN BINH RPG: HẦM NGỤC HUYỀN THOẠI ⚔️", menuHeaderStyle);
 
             // 3. Khung Lưới Chọn Màn Chơi 2 Hàng x 2 Cột (2x2 Grid Layout) - Phủ đều màn hình
             float gridMarginX = 36f;
@@ -831,9 +830,8 @@ namespace DungeonGame.UI
             GUI.DrawTexture(new Rect(vx, vy, vw, vh), popupBgTex);
 
             // 1. Tiêu đề Phá Đảo Game rực rỡ
-            GUI.Label(new Rect(vx, vy + 16f, vw, 40f), "👑 CHÚC MỪNG BẠN ĐÃ PHÁ ĐẢO TRÒ CHƠI! 👑", menuHeaderStyle);
-            GUI.Label(new Rect(vx, vy + 58f, vw, 26f), "✨ ĐẠI TOÀN THẮNG: ĐẬP TAN THẦN SẤM ZEUS TITAN & GIẢI CỨU THẾ GIỚI RPG! ✨", stageTitleStyle);
-            GUI.Label(new Rect(vx, vy + 88f, vw, 22f), "Đồ Án PRU213 - Sinh viên: Châu Vương Hoàng (MSSV: DE180551)", menuAuthorStyle);
+            GUI.Label(new Rect(vx, vy + 22f, vw, 40f), "👑 CHÚC MỪNG BẠN ĐÃ PHÁ ĐẢO TRÒ CHƠI! 👑", menuHeaderStyle);
+            GUI.Label(new Rect(vx, vy + 68f, vw, 26f), "✨ ĐẠI TOÀN THẮNG: ĐẬP TAN THẦN SẤM ZEUS TITAN & GIẢI CỨU THẾ GIỚI RPG! ✨", stageTitleStyle);
 
             // 2. Bảng thống kê toàn bộ hành trình
             int score = GameManager.Instance.Score;
