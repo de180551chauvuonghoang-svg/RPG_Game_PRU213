@@ -33,6 +33,8 @@ namespace DungeonGame.World
         private bool isPlayerNearby = false;
         private bool isShopOpen = false;
         private bool isUsed = false;
+        private bool requireStepAway = false;
+        private float closeCooldownTimer = 0f;
 
         // Textures
         private Texture2D shopBgTex;
@@ -226,6 +228,11 @@ namespace DungeonGame.World
 
         private void Update()
         {
+            if (closeCooldownTimer > 0f)
+            {
+                closeCooldownTimer -= Time.unscaledDeltaTime;
+            }
+
             if (playerTransform == null)
             {
                 FindPlayer();
@@ -234,6 +241,12 @@ namespace DungeonGame.World
 
             float dist = Vector2.Distance(transform.position, playerTransform.position);
             isPlayerNearby = dist <= interactRadius;
+
+            // Nếu người chơi bước ra ngoài phạm vi tương tác thì xóa cờ requireStepAway
+            if (dist > 2.4f)
+            {
+                requireStepAway = false;
+            }
 
             if (isPlayerNearby && !isShopOpen)
             {
@@ -244,7 +257,9 @@ namespace DungeonGame.World
 #if ENABLE_LEGACY_INPUT_MANAGER
                 try { if (Input.GetKeyDown(KeyCode.E)) pressE = true; } catch {}
 #endif
-                if (pressE || dist <= 1.8f)
+                // Tự động mở khi bước vào lần đầu hoặc khi bấm 'E'
+                // Nếu vừa đóng bằng Space/ESC thì không tự động bung lại trừ phi bước ra xa rồi quay lại hoặc bấm 'E'
+                if (pressE || (dist <= 1.8f && !requireStepAway && closeCooldownTimer <= 0f))
                 {
                     OpenShop();
                 }
@@ -260,21 +275,29 @@ namespace DungeonGame.World
 #if ENABLE_INPUT_SYSTEM
                 if (Keyboard.current != null)
                 {
+                    if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
+                    {
+                        CloseShop();
+                        return;
+                    }
                     if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame) ApplyUpgrade(1);
                     else if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) ApplyUpgrade(2);
                     else if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) ApplyUpgrade(3);
                     else if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) ApplyUpgrade(4);
-                    else if (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame) CloseShop();
                 }
 #endif
 #if ENABLE_LEGACY_INPUT_MANAGER
                 try
                 {
+                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        CloseShop();
+                        return;
+                    }
                     if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) ApplyUpgrade(1);
                     else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) ApplyUpgrade(2);
                     else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) ApplyUpgrade(3);
                     else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) ApplyUpgrade(4);
-                    else if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space)) CloseShop();
                 }
                 catch {}
 #endif
@@ -293,23 +316,40 @@ namespace DungeonGame.World
         {
             if (!isShopOpen) return;
             isShopOpen = false;
+            requireStepAway = true;
+            closeCooldownTimer = 1.2f;
             Time.timeScale = 1f; // TIẾP TỤC CHƠI BÌNH THƯỜNG
+            Debug.Log("<color=cyan><b>[SHOP] Đã đóng gian hàng. Bạn có thể tiếp tục chiến đấu và ghé lại bất cứ lúc nào!</b></color>");
         }
 
         private void OnGUI()
         {
             InitStyles();
 
+            // Bắt phím Space / Escape ngay trong OnGUI để đóng shop siêu nhạy và mượt mà
+            if (isShopOpen && Event.current != null && Event.current.type == EventType.KeyDown)
+            {
+                if (Event.current.keyCode == KeyCode.Space || Event.current.keyCode == KeyCode.Escape)
+                {
+                    CloseShop();
+                    Event.current.Use();
+                    return;
+                }
+            }
+
             // 1. HIỆN GỢI Ý KHI PLAYER ĐẾN GẦN GIAN HÀNG
             if (isPlayerNearby && !isShopOpen)
             {
-                float pw = 520f;
+                float pw = 540f;
                 float ph = 48f;
                 float px = (Screen.width - pw) / 2f;
                 float py = Screen.height - 120f;
 
                 int curCoins = GameManager.Instance != null ? GameManager.Instance.Coins : 0;
-                GUI.Box(new Rect(px, py, pw, ph), $"⚡ NHẤN 'E' HOẶC BƯỚC VÀO ĐỂ NÂNG CẤP (BẠN CÓ: {curCoins} 🪙) ⚡", promptStyle);
+                string promptMsg = requireStepAway
+                    ? $"⚡ NHẤN 'E' HOẶC BƯỚC VÀO ĐỂ MỞ LẠI GIAN HÀNG (BẠN CÓ: {curCoins} COIN) ⚡"
+                    : $"⚡ NHẤN 'E' HOẶC BƯỚC VÀO ĐỂ NÂNG CẤP (BẠN CÓ: {curCoins} COIN) ⚡";
+                GUI.Box(new Rect(px, py, pw, ph), promptMsg, promptStyle);
             }
 
             // 2. BẢNG NÂNG CẤP VŨ KHÍ RỘNG RÃI
@@ -328,7 +368,7 @@ namespace DungeonGame.World
 
                 // Tiêu đề & Thông báo túi tiền vàng
                 GUI.Label(new Rect(sx, sy + 10f, sw, 30f), "🏪 GIAN HÀNG MA THUẬT - NÂNG CẤP VŨ KHÍ RPG", shopTitleStyle);
-                GUI.Label(new Rect(sx, sy + 38f, sw, 22f), $"⏸️ [GAME TẠM DỪNG]  •  🪙 TÚI TIỀN CỦA BẠN: {playerCoins:N0} COIN  •  (Tối đa Level 2)", coinWalletStyle);
+                GUI.Label(new Rect(sx, sy + 38f, sw, 22f), $"⏸️ [GAME TẠM DỪNG]  •  TÚI TIỀN CỦA BẠN: {playerCoins:N0} COIN  •  (Tối đa Level 2)", coinWalletStyle);
 
                 float cardX = sx + 20f;
                 float cardW = sw - 40f;
@@ -350,13 +390,13 @@ namespace DungeonGame.World
                 int multiCost = playerCombat != null ? playerCombat.GetUpgradeCost(multiLvl) : 15;
                 bool canAffordMulti = playerCoins >= multiCost && !isMultiMaxed;
 
-                string multiBadge = isMultiMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {multiLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {multiLvl + 1} (GIÁ: {multiCost} 🪙)";
+                string multiBadge = isMultiMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {multiLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {multiLvl + 1} (GIÁ: {multiCost} COIN)";
                 string multiStats = isMultiMaxed 
                     ? $"👑 ĐÃ ĐẠT CỰC ĐẠI: [5 TIA CÁNH QUẠT]  |  Tổng sát thương: {curDmg:F0} x 5 = {curDmg * 5:F0} DMG" 
                     : $"⚡ Số tia đạn: [{curShots} tia] ➔ [{(multiLvl == 0 ? 3 : 5)} tia cánh quạt]  |  Tổng DMG: {curDmg:F0} x {(multiLvl == 0 ? 3 : 5)} = {curDmg * (multiLvl == 0 ? 3 : 5):F0}";
                 string multiBtn = isMultiMaxed 
                     ? "👑 ĐÃ ĐẠT TỐI ĐA\n(MAX LEVEL)" 
-                    : (canAffordMulti ? $"✨ NÂNG CẤP ({multiCost} 🪙) ✨\n(Phím 1)" : $"❌ THIẾU COIN ({multiCost} 🪙)\n(Phím 1)");
+                    : (canAffordMulti ? $"✨ NÂNG CẤP ({multiCost} COIN) ✨\n(Phím 1)" : $"❌ THIẾU COIN ({multiCost} COIN)\n(Phím 1)");
 
                 DrawUpgradeCard(
                     new Rect(cardX, startY, cardW, cardH),
@@ -376,14 +416,14 @@ namespace DungeonGame.World
                 int dmgCost = playerCombat != null ? playerCombat.GetUpgradeCost(dmgLvl) : 15;
                 bool canAffordDmg = playerCoins >= dmgCost && !isDmgMaxed;
 
-                string dmgBadge = isDmgMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {dmgLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {dmgLvl + 1} (GIÁ: {dmgCost} 🪙)";
+                string dmgBadge = isDmgMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {dmgLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {dmgLvl + 1} (GIÁ: {dmgCost} COIN)";
                 float nextDmgVal = playerCombat != null ? playerCombat.NextDamage : curDmg * 1.6f;
                 string dmgStats = isDmgMaxed 
                     ? $"👑 ĐÃ ĐẠT CỰC ĐẠI: +120% DMG [{curDmg:F0} DMG/phát]  |  Đạn Titan bộc phá x1.7" 
                     : $"⚡ Sát thương mỗi phát: [{curDmg:F0} DMG] ➔ [{nextDmgVal:F0} DMG] (+60% DMG)  |  Đạn to hơn";
                 string dmgBtn = isDmgMaxed 
                     ? "👑 ĐÃ ĐẠT TỐI ĐA\n(MAX LEVEL)" 
-                    : (canAffordDmg ? $"✨ NÂNG CẤP ({dmgCost} 🪙) ✨\n(Phím 2)" : $"❌ THIẾU COIN ({dmgCost} 🪙)\n(Phím 2)");
+                    : (canAffordDmg ? $"✨ NÂNG CẤP ({dmgCost} COIN) ✨\n(Phím 2)" : $"❌ THIẾU COIN ({dmgCost} COIN)\n(Phím 2)");
 
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY, cardW, cardH),
@@ -403,14 +443,14 @@ namespace DungeonGame.World
                 int spdCost = playerCombat != null ? playerCombat.GetUpgradeCost(spdLvl) : 15;
                 bool canAffordSpd = playerCoins >= spdCost && !isSpdMaxed;
 
-                string spdBadge = isSpdMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {spdLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {spdLvl + 1} (GIÁ: {spdCost} 🪙)";
+                string spdBadge = isSpdMaxed ? "⭐ CẤP ĐỘ: TỐI ĐA (LEVEL 2/2 - MAX)" : $"⚡ CẤP ĐỘ: LEVEL {spdLvl}/2  ➔  NÂNG CẤP LÊN LEVEL {spdLvl + 1} (GIÁ: {spdCost} COIN)";
                 float nextRateVal = playerCombat != null ? playerCombat.NextFireRatePerSec : curRate * 1.5f;
                 string spdStats = isSpdMaxed 
                     ? $"👑 ĐÃ ĐẠT CỰC ĐẠI: +100% TỐC ĐỘ [{curRate:F1} viên/s]  |  Xả đạn bão táp liên hoàn" 
                     : $"⚡ Tốc độ xả đạn: [{curRate:F1} viên/s] ➔ [{nextRateVal:F1} viên/s] (+50% Tốc độ bắn)";
                 string spdBtn = isSpdMaxed 
                     ? "👑 ĐÃ ĐẠT TỐI ĐA\n(MAX LEVEL)" 
-                    : (canAffordSpd ? $"✨ NÂNG CẤP ({spdCost} 🪙) ✨\n(Phím 3)" : $"❌ THIẾU COIN ({spdCost} 🪙)\n(Phím 3)");
+                    : (canAffordSpd ? $"✨ NÂNG CẤP ({spdCost} COIN) ✨\n(Phím 3)" : $"❌ THIẾU COIN ({spdCost} COIN)\n(Phím 3)");
 
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY * 2, cardW, cardH),
@@ -429,11 +469,11 @@ namespace DungeonGame.World
                 bool isHpFull = curHp >= maxHp;
                 bool canAffordPotion = playerCoins >= potionCost && !isHpFull;
 
-                string potionBadge = isHpFull ? "💚 TRẠNG THÁI: SINH LỰC ĐẦY ĐỦ 100%" : $"💖 TIÊN DƯỢC CỨU SINH (GIÁ: {potionCost} 🪙)";
+                string potionBadge = isHpFull ? "💚 TRẠNG THÁI: SINH LỰC ĐẦY ĐỦ 100%" : $"💖 TIÊN DƯỢC CỨU SINH (GIÁ: {potionCost} COIN)";
                 string potionStats = $"⚡ Sinh mệnh hiệp sĩ: [{curHp:F0}/{maxHp:F0} HP] ➔ [HỒI PHỤC 100% ĐẦY BÌNH MÁU]";
                 string potionBtn = isHpFull 
                     ? "💚 MÁU ĐÃ ĐẦY 100%\n(Không cần hồi)" 
-                    : (canAffordPotion ? $"💖 HỒI MÁU ({potionCost} 🪙)\n(Phím 4)" : $"❌ THIẾU COIN ({potionCost} 🪙)\n(Phím 4)");
+                    : (canAffordPotion ? $"💖 HỒI MÁU ({potionCost} COIN)\n(Phím 4)" : $"❌ THIẾU COIN ({potionCost} COIN)\n(Phím 4)");
 
                 DrawUpgradeCard(
                     new Rect(cardX, startY + gapY * 3, cardW, cardH),
