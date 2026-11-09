@@ -10,6 +10,7 @@
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
 /[Aa]ssets/[Aa]ssetStoreTools*
+/[Aa]ssets/_Recovery*
 
 # Visual Studio / VS Code / Rider cache
 .vs/

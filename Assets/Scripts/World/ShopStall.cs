@@ -228,6 +228,8 @@ namespace DungeonGame.World
 
         private void Update()
         {
+            if (isUsed) return;
+
             if (closeCooldownTimer > 0f)
             {
                 closeCooldownTimer -= Time.unscaledDeltaTime;
@@ -324,6 +326,8 @@ namespace DungeonGame.World
 
         private void OnGUI()
         {
+            if (isUsed) return;
+
             InitStyles();
 
             // Bắt phím Space / Escape ngay trong OnGUI để đóng shop siêu nhạy và mượt mà
@@ -556,8 +560,11 @@ namespace DungeonGame.World
 
         private void ApplyUpgrade(int option)
         {
+            if (isUsed) return;
             if (playerCombat == null || playerHealth == null) FindPlayer();
             if (GameManager.Instance == null) return;
+
+            bool upgradeSuccess = false;
 
             switch (option)
             {
@@ -568,6 +575,7 @@ namespace DungeonGame.World
                         if (GameManager.Instance.SpendCoins(cost))
                         {
                             playerCombat.UpgradeMultiShot(multiShotSprite);
+                            upgradeSuccess = true;
                         }
                     }
                     break;
@@ -579,6 +587,7 @@ namespace DungeonGame.World
                         if (GameManager.Instance.SpendCoins(cost))
                         {
                             playerCombat.UpgradeDamage(damageSprite);
+                            upgradeSuccess = true;
                         }
                     }
                     break;
@@ -590,6 +599,7 @@ namespace DungeonGame.World
                         if (GameManager.Instance.SpendCoins(cost))
                         {
                             playerCombat.UpgradeFireRate(speedSprite);
+                            upgradeSuccess = true;
                         }
                     }
                     break;
@@ -600,10 +610,31 @@ namespace DungeonGame.World
                         if (GameManager.Instance.SpendCoins(10))
                         {
                             playerHealth.Heal(100f);
+                            upgradeSuccess = true;
                         }
                     }
                     break;
             }
+
+            if (upgradeSuccess)
+            {
+                FinishShopAfterUpgrade();
+            }
+        }
+
+        private void FinishShopAfterUpgrade()
+        {
+            isUsed = true;
+            CloseShop();
+
+            if (UpgradeShopSpawner.Instance != null)
+            {
+                UpgradeShopSpawner.Instance.NotifyShopUpgraded(this);
+            }
+
+            Debug.Log("<color=green><b>[SHOP] Nâng cấp thành công! Gian hàng đã hoàn thành nhiệm vụ và rời đi. Gian hàng tiếp theo sẽ xuất hiện ở mốc điểm kế tiếp!</b></color>");
+
+            Destroy(gameObject, 0.25f);
         }
     }
 }
