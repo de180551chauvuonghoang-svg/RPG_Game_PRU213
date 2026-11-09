@@ -414,6 +414,9 @@ MonoBehaviour:
   damageMultiplier: 1
   fireRateMultiplier: 1
   bulletScale: 1
+  multiShotLevel: 0
+  damageLevel: 0
+  fireRateLevel: 0
 --- !u!114 &521717319
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -738,13 +741,14 @@ MonoBehaviour:
   currentState: 0
   currentStage: 1
   bossScoreThreshold: 1000
-  bossPrefab: {fileID: 2850206607744715380, guid: e0403bbbb954c044791c36b753aba661, type: 3}
-  bossStage2Prefab: {fileID: 2040529309567633299, guid: b3d48a8f820270548a8966da10d89619, type: 3}
+  bossPrefab: {fileID: 99478701448366989, guid: e0403bbbb954c044791c36b753aba661, type: 3}
+  bossStage2Prefab: {fileID: 3963226367842003426, guid: b3d48a8f820270548a8966da10d89619, type: 3}
   portalPrefab: {fileID: 174075132121015317, guid: 25be5131a8ac9a24d8bdc79b27cdbea0, type: 3}
   stage2LavaSprite: {fileID: 21300000, guid: 4268388445d642d4db820bcf7f369f22, type: 3}
   score: 0
   killCount: 0
   survivalTime: 0
+  coins: 0
 --- !u!4 &1098814638
 Transform:
   m_ObjectHideFlags: 0
@@ -784,7 +788,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4be28a6e78f2ebe4c9e059bcaacec02a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGame.World.UpgradeShopSpawner
-  shopPrefab: {fileID: 7311995387101096422, guid: 84b33426fd9bf524ab346b9291678285, type: 3}
+  shopPrefab: {fileID: 8401271855318923848, guid: 84b33426fd9bf524ab346b9291678285, type: 3}
   scoreMilestones: 2c010000bc020000dc050000c4090000a00f00007017000034210000e02e0000
   spawnDistance: 5
 --- !u!1 &1292274680
@@ -881,15 +885,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGame.Enemy.EnemySpawner
   enemyConfigs:
   - enemyName: "Slime Qu\u1EF7"
-    prefab: {fileID: 7999828032892916946, guid: 878864f2f27a7734d90bc3873cdd65b0, type: 3}
+    prefab: {fileID: 5620370129738855048, guid: 878864f2f27a7734d90bc3873cdd65b0, type: 3}
     spawnWeight: 60
     minSpawnTime: 0
   - enemyName: "X\u01B0\u01A1ng Ma \xC1m"
-    prefab: {fileID: 7287699477783466542, guid: 19d55896eaed259488d29ebaa1656710, type: 3}
+    prefab: {fileID: 4705766180192872157, guid: 19d55896eaed259488d29ebaa1656710, type: 3}
     spawnWeight: 30
     minSpawnTime: 15
   - enemyName: "Qu\u1EF7 Dung Nham"
-    prefab: {fileID: 4615184391506791917, guid: f1fa13cbd660cf644925ecda65b4a20b, type: 3}
+    prefab: {fileID: 6761292047363230173, guid: f1fa13cbd660cf644925ecda65b4a20b, type: 3}
     spawnWeight: 10
     minSpawnTime: 30
   initialDelay: 2.5
