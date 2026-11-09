@@ -119,6 +119,7 @@ namespace DungeonGame.UI
             popupBgTex = MakeTex(new Color(0.08f, 0.08f, 0.12f, 0.98f));
             bossFillTex = MakeTex(new Color(0.85f, 0.1f, 0.2f, 1f));
             bossBorderTex = MakeTex(new Color(0.9f, 0.2f, 0.9f, 1f));
+            stageCardBgTex = MakeTex(new Color(0.12f, 0.13f, 0.20f, 0.95f));
             stageCardBorderTex = MakeTex(new Color(0.4f, 0.5f, 0.7f, 0.8f));
             stageBorderTex1 = MakeTex(new Color(0.25f, 0.7f, 1f, 0.95f)); // Lam Thạch Màn 1
             stageBorderTex2 = MakeTex(new Color(1f, 0.38f, 0.12f, 0.95f)); // Hỏa Diệm Màn 2
@@ -601,9 +602,12 @@ namespace DungeonGame.UI
         private void DrawGridStageCard(Rect rect, Texture2D borderTex, string title, string status, Color titleColor, string desc, string btnText, bool isEnabled, Action onClick)
         {
             // Viền phát sáng theo màu chủ đề của từng màn chơi
-            GUI.DrawTexture(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), borderTex != null ? borderTex : stageCardBorderTex);
+            Texture2D bTex = borderTex != null ? borderTex : (stageCardBorderTex != null ? stageCardBorderTex : Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4), bTex);
+
             // Nền thẻ
-            GUI.DrawTexture(rect, isEnabled ? stageCardBgTex : popupBgTex);
+            Texture2D bgTex = (isEnabled && stageCardBgTex != null) ? stageCardBgTex : (popupBgTex != null ? popupBgTex : Texture2D.blackTexture);
+            GUI.DrawTexture(rect, bgTex);
 
             float padX = 16f;
             float contentW = rect.width - (padX * 2f);
